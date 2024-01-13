@@ -10,14 +10,14 @@ export OMP_NUM_THREADS=8
 SEED=111
 MODEL_NAME=bert-base-uncased
 EP=10
-BS=32
+BS=8
 LR=5e-5
 MAX_LEN=128
 POOLER_NUM=128
 TEMP=0.05
 WD=0.01
 HNW=0
-python -m torch.distributed.launch --nproc_per_node $NUM_GPU --master_port $PORT_ID  2.train.py \
+python 2.train.py \
     --overwrite_output_dir \
     --seed ${SEED} \
     --model_name_or_path ${MODEL_NAME} \
