@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.distributed as dist
 import transformers
-from transformers.modeling_bert import BertPreTrainedModel, BertLMPredictionHead, BertModel, BertPooler, BertEmbeddings, BertEncoder
+from transformers.models.bert.modeling_bert import BertPreTrainedModel, BertLMPredictionHead, BertModel, BertPooler, BertEmbeddings, BertEncoder
 from transformers.activations import gelu
 from transformers.file_utils import (
     add_code_sample_docstrings,
