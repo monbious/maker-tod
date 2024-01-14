@@ -23,7 +23,7 @@ python 2.train.py \
     --model_name_or_path ${MODEL_NAME} \
     --train_file others/data/mwoz_gptke/data_used/RRG_data1_times_gtdb_gesa_retrieve0/train.csv \
     --validation_file others/data/mwoz_gptke/data_used/RRG_data1_times_gtdb_gesa_retrieve0/val.csv \
-    --output_dir others/result/mwoz_gptke/RP_v0/retriever_train_new_trunc_data_used_new_v0_seed-${SEED}_${MODEL_NAME}_ep-${EP}_lr-${LR}_wd-${WD}_maxlen-${MAX_LEN}_bs-${BS}_ngpu-${NUM_GPU}_pln-${POOLER_NUM}_tmp-${TEMP}_hnw-${HNW} \
+    --output_dir ../system_training/others/result/retriever_mwoz_gptke/RP_v0/train_new_trunc_data_used_new_v0_seed-${SEED}_${MODEL_NAME}_ep-${EP}_lr-${LR}_wd-${WD}_maxlen-${MAX_LEN}_bs-${BS}_ngpu-${NUM_GPU}_pln-${POOLER_NUM}_tmp-${TEMP}_hnw-${HNW} \
     --num_train_epochs ${EP} \
     --per_device_train_batch_size ${BS} \
     --per_device_eval_batch_size ${BS} \
@@ -33,9 +33,9 @@ python 2.train.py \
     --save_total_limit 1 \
     --evaluation_strategy steps \
     --load_best_model_at_end \
-    --eval_steps 100 \
-    --save_steps 100 \
-    --logging_steps 10 \
+    --eval_steps 1000 \
+    --save_steps 1000 \
+    --logging_steps 1000 \
     --pooler_type cls \
     --pooler_num ${POOLER_NUM} \
     --temp ${TEMP} \
