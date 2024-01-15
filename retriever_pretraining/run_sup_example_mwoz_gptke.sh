@@ -31,10 +31,9 @@ python 2.train.py \
     --learning_rate ${LR} \
     --max_seq_length ${MAX_LEN} \
     --save_total_limit 1 \
-    --evaluation_strategy steps \
+    --evaluation_strategy epoch \
     --load_best_model_at_end \
-    --eval_steps 1000 \
-    --save_steps 1000 \
+    --save_strategy epoch \
     --logging_steps 1000 \
     --pooler_type cls \
     --pooler_num ${POOLER_NUM} \

@@ -11,7 +11,7 @@ for DATA_VERSION in 1
 do
 for EP in 15
 do
-for BS in 108
+for BS in 8
 do
 for MAX_LEN in 128
 do
@@ -29,7 +29,7 @@ python 2.train.py \
     --model_name_or_path ${MODEL_NAME} \
     --train_file others/data/camrest/data_used/RRG_cdnet_data0_times_gtdb_gesa_times-cr_retrieve${DATA_VERSION}/train.csv \
     --validation_file others/data/camrest/data_used/RRG_cdnet_data0_times_gtdb_gesa_times-cr_retrieve${DATA_VERSION}/val.csv \
-    --output_dir others/result/camrest/RP_v0/retriever_RRG_cdnet_data0_times_gtdb_gesa_times-cr_retrieve${DATA_VERSION}_seed-${SEED}_ep-${EP}_lr-${LR}_wd-${WD}_maxlen-${MAX_LEN}_bs-${BS}_ngpu-${NUM_GPU}_pln-${POOLER_NUM}_tmp-${TEMP}_hnw-${HNW} \
+    --output_dir ../system_training/others/result/retriever_camrest/RP_v0/RRG_cdnet_data0_times_gtdb_gesa_times-cr_retrieve${DATA_VERSION}_seed-${SEED}_ep-${EP}_lr-${LR}_wd-${WD}_maxlen-${MAX_LEN}_bs-${BS}_ngpu-${NUM_GPU}_pln-${POOLER_NUM}_tmp-${TEMP}_hnw-${HNW} \
     --num_train_epochs ${EP} \
     --per_device_train_batch_size ${BS} \
     --per_device_eval_batch_size ${BS} \
@@ -40,7 +40,7 @@ python 2.train.py \
     --evaluation_strategy epoch \
     --save_strategy epoch \
     --load_best_model_at_end \
-    --logging_steps 10 \
+    --logging_steps 1000 \
     --pooler_type cls \
     --pooler_num ${POOLER_NUM} \
     --temp ${TEMP} \
