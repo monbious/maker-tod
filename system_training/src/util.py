@@ -145,7 +145,7 @@ def set_optim(opt, model):
         else:
             scheduler_steps = opt.scheduler_steps
         scheduler = WarmupLinearScheduler(optimizer, warmup_steps=opt.warmup_steps, scheduler_steps=scheduler_steps,
-                                          min_ratio=0., fixed_lr=opt.fixed_lr)
+                                          min_ratio=0.1, fixed_lr=opt.fixed_lr)
     return optimizer, scheduler
 
 
@@ -162,7 +162,7 @@ def set_retriever_optim(opt, model):
         else:
             scheduler_steps = opt.retriever_scheduler_steps
         scheduler = WarmupLinearScheduler(optimizer, warmup_steps=opt.retriever_warmup_steps, scheduler_steps=scheduler_steps,
-                                          min_ratio=0., fixed_lr=opt.retriever_fixed_lr)
+                                          min_ratio=0.5, fixed_lr=opt.retriever_fixed_lr)
     return optimizer, scheduler
 
 
@@ -179,7 +179,7 @@ def set_ranker_optim(opt, model):
         else:
             scheduler_steps = opt.ranker_scheduler_steps
         scheduler = WarmupLinearScheduler(optimizer, warmup_steps=opt.ranker_warmup_steps, scheduler_steps=scheduler_steps,
-                                          min_ratio=0., fixed_lr=opt.ranker_fixed_lr)
+                                          min_ratio=0.5, fixed_lr=opt.ranker_fixed_lr)
     return optimizer, scheduler
 
 
