@@ -571,6 +571,7 @@ def run(opt, checkpoint_path):
     generator_model = generator_model.to(opt.local_rank)
     generator_model.set_checkpoint(opt.use_checkpoint)
     generator_optimizer, generator_scheduler = src.util.set_optim(opt, generator_model)
+
     # retriever model
     retriever_model_name = opt.retriever_model_name
     retriever_model_class = src.simcse_model.BertForCL
@@ -578,6 +579,7 @@ def run(opt, checkpoint_path):
     retriever_model = retriever_model_class.from_pretrained(retriever_model_name)  # dont need to add token
     retriever_model = retriever_model.to(opt.local_rank)
     retriever_optimizer, retriever_scheduler = src.util.set_retriever_optim(opt, retriever_model)
+
     # ranker model
     ranker_model_name = "bert-base-uncased"
     ranker_model_class = src.ranker_model.BertForRank

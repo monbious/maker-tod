@@ -157,6 +157,7 @@ class DialCollator(object):
                                                            maxlen=self.generator_text_maxlength, truncated='max_len',
                                                            pad_method='post', trunc_method='pre', dtype='int32',
                                                            value=self.pad_id)).bool()  # (bs, context_max_len)
+
         retriever_context = self.retriever_tokenizer.batch_encode_plus(context)
         retriever_context_input_ids = torch.tensor(util.padSeqs(retriever_context['input_ids'],
                                                                 maxlen=self.retriever_text_maxlength,
@@ -172,6 +173,7 @@ class DialCollator(object):
                                                                  truncated='max_len',
                                                                  pad_method='post', trunc_method='pre', dtype='int32',
                                                                  value=1))  # (bs, context_max_len)
+
         ranker_context = self.ranker_tokenizer.batch_encode_plus(context)
         ranker_context_input_ids = torch.tensor(util.padSeqs(ranker_context['input_ids'],
                                                              maxlen=self.ranker_text_maxlength,

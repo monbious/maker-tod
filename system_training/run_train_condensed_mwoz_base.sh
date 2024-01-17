@@ -2,7 +2,7 @@
 
 export CUDA_LAUNCH_BLOCKING=1
 export CUDA_VISIBLE_DEVICES=0
-ES=48000
+ES=32000
 DATA=RRG_data1_times_gtdb_gesa_times-cr-dyn
 RMN=others/models/RRG/retriever_train_new_trunc_data_used_new_v0_seed-111_bert-base-uncased_ep-10_lr-5e-5_wd-0.01_maxlen-128_bs-32_ngpu-4_pln-128_tmp-0.05_hnw-0
 python train.py \
@@ -16,6 +16,8 @@ python train.py \
     --eval_data others/data/mwoz_gptke/data_used/${DATA}/val.json \
     --test_data others/data/mwoz_gptke/data_used/${DATA}/test.json \
     --dbs others/data/mwoz_gptke/data_used/${DATA}/all_db.json \
+    --per_gpu_batch_size 1 \
+    --per_gpu_eval_batch_size 4 \
     --retriever_lr 5e-5 \
     --ranker_lr 5e-5 \
     --use_ranker True \
@@ -34,8 +36,8 @@ python train.py \
     --dk_mask True \
     --use_checkpoint \
     --total_steps ${ES} \
-    --retriever_total_steps ${ES} \
-    --ranker_total_steps ${ES} \
+    --retriever_total_steps 48000 \
+    --ranker_total_steps 48000 \
     --end_eval_step ${ES} \
     --use_gt_dbs True \
     --use_retriever_for_gt True \
