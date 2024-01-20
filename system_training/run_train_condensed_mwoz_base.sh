@@ -17,7 +17,7 @@ python train.py \
     --test_data others/data/mwoz_gptke/data_used/${DATA}/test.json \
     --dbs others/data/mwoz_gptke/data_used/${DATA}/all_db.json \
     --per_gpu_batch_size 1 \
-    --per_gpu_eval_batch_size 4 \
+    --per_gpu_eval_batch_size 8 \
     --retriever_lr 5e-5 \
     --ranker_lr 5e-5 \
     --use_ranker True \
