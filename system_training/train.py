@@ -138,8 +138,11 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                 if opt.use_retriever_for_gt is True and (step - 1) % opt.db_emb_update_steps == 0:
                     retriever_all_dbs_embeddings = retriever_embedding_db(retriever_model,
                                                                           retriever_db_dataloader)  # no grad
+                    print('是否进入 ==> ', retriever_all_dbs_embeddings.shape)
                 elif opt.use_retriever_for_gt is False:
                     retriever_all_dbs_embeddings = None
+
+            print('retriever_all_dbs_embeddings ==> ', retriever_all_dbs_embeddings.shape)
 
             (index, resp_ori_input_ids, resp_ori_mask, generator_context_input_ids, generator_context_mask,
              retriever_context_input_ids, retriever_context_mask, retriever_context_token_type,
@@ -702,6 +705,9 @@ if __name__ == "__main__":
                    f"_asml-{opt.answer_maxlength}_gdml-{opt.generator_db_maxlength}_rdml-{opt.retriever_db_maxlength}_kdml-{opt.ranker_db_maxlength}" \
                    f"_dus-{opt.db_emb_update_steps}_topd-{opt.top_k_dbs}"
     # assert opt.ranker_times_matrix_start_step <= opt.rank_attribute_start_step <= opt.generator_distill_retriever_start_step
+    # 做一些验证
+    print('opt.db_emb_update_steps ==> ', opt.db_emb_update_steps)
+
     assert opt.ranker_times_matrix_start_step <= opt.rank_attribute_start_step
     if opt.use_ranker is True:
         assert opt.use_dk is True
