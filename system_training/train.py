@@ -118,11 +118,14 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
     generator_all_dbs_ids, generator_all_dbs_mask, _, _ = get_all_dbs_inputs(generator_db_dataloader)
     retriever_all_dbs_ids, retriever_all_dbs_mask, retriever_all_dbs_token_type, _ = get_all_dbs_inputs(retriever_db_dataloader)
     ranker_all_dbs_ids, ranker_all_dbs_mask, ranker_all_dbs_token_type, _ = get_all_dbs_inputs(ranker_db_dataloader)
+
     curr_loss = 0.0
     epoch = 0
     generator_model.train()
     retriever_model.train()
     ranker_model.train()
+
+    # 要训练多少个batch
     training_steps = min(opt.total_steps, opt.end_eval_step)
     while step < training_steps:
         epoch += 1
@@ -137,10 +140,12 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                                                                           retriever_db_dataloader)  # no grad
                 elif opt.use_retriever_for_gt is False:
                     retriever_all_dbs_embeddings = None
+
             (index, resp_ori_input_ids, resp_ori_mask, generator_context_input_ids, generator_context_mask,
              retriever_context_input_ids, retriever_context_mask, retriever_context_token_type,
              ranker_context_input_ids, ranker_context_mask, ranker_context_token_type,
              resp_delex_mask, gt_db_idx, times_matrix) = batch
+
             # retriever model get top-k db index
             if opt.use_gt_dbs is False:
                 retriever_context_embeddings = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
@@ -163,12 +168,17 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                                                                    output_hidden_states=True,
                                                                    return_dict=True,
                                                                    sent_emb=True).pooler_output  # have grad
+                    # 对话上下文和all db的相关性得分
                     retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
                                                             retriever_all_dbs_embeddings)  # (bs, all_db_num)
+                    # 从相关性得分中按照指定的索引收集元素
                     retriever_gt_dbs_scores = torch.gather(retriever_all_dbs_scores, 1,
                                                            gt_db_idx.long())  # (bs, gt_db_num)
+
                     retriever_top_k_dbs_index = retriever_gt_dbs_scores.sort(-1, True)[1][:, :opt.top_k_dbs]  # (bs, top_k)
+                    # 根据排好序的索引获取相关度从高到低的相关db的索引，也就是排好序的gt_db_idx
                     retriever_top_k_dbs_index = torch.gather(gt_db_idx, 1, retriever_top_k_dbs_index.long()).unsqueeze(2)  # (bs, top_k, 1)
+
             # get top-k db generator inputs and concat with context inputs and forward into generator model
             bsz = retriever_top_k_dbs_index.size(0)
             generator_db_len = generator_all_dbs_ids.size(-1)
@@ -180,6 +190,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                                                                                  generator_top_k_dbs_ids)
             generator_context_top_k_dbs_mask = concat_context_and_dbs_input(generator_context_mask,
                                                                             generator_top_k_dbs_mask)
+
             # get top-k db ranker inputs and concat with context inputs and forward into ranker model
             ranker_db_len = ranker_all_dbs_ids.size(-1)
             ranker_top_k_dbs_ids = torch.gather(ranker_all_dbs_ids.unsqueeze(0).repeat(bsz, 1, 1), 1,
@@ -632,17 +643,18 @@ def run(opt, checkpoint_path):
         world_size=opt.world_size,
     )
     test_dial_dataset = data_turn_batch.DialDataset(test_dial_examples, use_gt_dbs=opt.use_gt_dbs)
-    dial_collator = data_turn_batch.DialCollator(generator_tokenizer, retriever_tokenizer, ranker_tokenizer,
-                                                 opt.generator_text_maxlength, opt.retriever_text_maxlength,
-                                                 opt.ranker_text_maxlength, opt.answer_maxlength)
 
     db_examples = data_turn_batch.load_dbs(opt.dbs)
     db_dataset = data_turn_batch.DBDataset(db_examples, opt.db_type, use_dk=opt.use_dk, dk_mask=opt.dk_mask)
+
     generator_db_collator = data_turn_batch.DBCollator(generator_tokenizer, opt.generator_db_maxlength,
                                                        type="generator")
     retriever_db_collator = data_turn_batch.DBCollator(retriever_tokenizer, opt.retriever_db_maxlength,
                                                        type="retriever")
     ranker_db_collator = data_turn_batch.DBCollator(ranker_tokenizer, opt.ranker_db_maxlength, type="ranker")
+    dial_collator = data_turn_batch.DialCollator(generator_tokenizer, retriever_tokenizer, ranker_tokenizer,
+                                                 opt.generator_text_maxlength, opt.retriever_text_maxlength,
+                                                 opt.ranker_text_maxlength, opt.answer_maxlength)
 
     step, best_dev_score = 0, 0.0
     if opt.is_main:
