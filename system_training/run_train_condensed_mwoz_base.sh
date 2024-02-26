@@ -32,6 +32,8 @@ python train.py \
     --use_dk True \
     --dk_mask True \
     --use_checkpoint \
+    --per_gpu_eval_batch_size 4 \
+    --eval_freq 8000 \
     --total_steps ${ES} \
     --retriever_total_steps ${ES} \
     --ranker_total_steps ${ES} \
