@@ -1,5 +1,7 @@
 """data utils for turn-level batch, this means the input batch to the models are turns which might being the different
 dialog's different turn."""
+from functools import reduce
+
 import torch
 import json
 from src import util
@@ -99,6 +101,15 @@ class DialDataset(torch.utils.data.Dataset):
         context = example["context_used"]  # already have <user> prefix
         resp_ori = example["output_used"] + ' </s>'
         return_dict = {'index': index, 'context': context, 'resp_ori': resp_ori}
+
+        # 添加上下文的实体标记
+        dial_kbs = example["kb"]
+        dial_kb_set = set(list(reduce(lambda a, b: a + b, [list(kb_dict.values()) for kb_dict in dial_kbs])) + example[
+            "gold_entities"])
+        context_splits = context.split(' ')
+        ent_mark = [2 if word not in dial_kb_set else 1 for word in context_splits]
+        return_dict['ent_mark'] = ent_mark
+
         add_args = {}
         if self.use_delex is True:
             delex_entities = [x.replace("_", " ") for x in example["gold_entities"]]
@@ -212,10 +223,13 @@ class DialCollator(object):
         else:
             times_matrix = None
 
+        max_len = max([len(ex["ent_mark"]) for ex in batch])
+        ent_mark = torch.tensor([ex["ent_mark"] + [0] * (max_len - len(ex["ent_mark"])) for ex in batch])
+
         return index, resp_ori_input_ids, resp_ori_mask, generator_context_input_ids, generator_context_mask, \
                retriever_context_input_ids, retriever_context_mask, retriever_context_token_type, \
                ranker_context_input_ids, ranker_context_mask, ranker_context_token_type, \
-               resp_delex_mask, gt_db_idx, times_matrix
+               resp_delex_mask, gt_db_idx, times_matrix, ent_mark
 
 
 class DBDataset(torch.utils.data.Dataset):

@@ -140,7 +140,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
             (index, resp_ori_input_ids, resp_ori_mask, generator_context_input_ids, generator_context_mask,
              retriever_context_input_ids, retriever_context_mask, retriever_context_token_type,
              ranker_context_input_ids, ranker_context_mask, ranker_context_token_type,
-             resp_delex_mask, gt_db_idx, times_matrix) = batch
+             resp_delex_mask, gt_db_idx, times_matrix, ent_mark) = batch
             # retriever model get top-k db index
             if opt.use_gt_dbs is False:
                 retriever_context_embeddings = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
@@ -157,18 +157,22 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     retriever_top_k_dbs_index = gt_db_idx[:, :opt.top_k_dbs].unsqueeze(2)  # (bs, top_k, 1)
                 else:
                     # retriever model get top-k db index
+                    # 应该是在这里找相关性和db
                     retriever_context_embeddings = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
                                                                    attention_mask=retriever_context_mask.long().cuda(),
                                                                    token_type_ids=retriever_context_token_type.long().cuda(),
                                                                    output_hidden_states=True,
                                                                    return_dict=True,
                                                                    sent_emb=True).pooler_output  # have grad
+
                     retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
                                                             retriever_all_dbs_embeddings)  # (bs, all_db_num)
                     retriever_gt_dbs_scores = torch.gather(retriever_all_dbs_scores, 1,
                                                            gt_db_idx.long())  # (bs, gt_db_num)
                     retriever_top_k_dbs_index = retriever_gt_dbs_scores.sort(-1, True)[1][:, :opt.top_k_dbs]  # (bs, top_k)
                     retriever_top_k_dbs_index = torch.gather(gt_db_idx, 1, retriever_top_k_dbs_index.long()).unsqueeze(2)  # (bs, top_k, 1)
+
+
             # get top-k db generator inputs and concat with context inputs and forward into generator model
             bsz = retriever_top_k_dbs_index.size(0)
             generator_db_len = generator_all_dbs_ids.size(-1)
@@ -399,7 +403,7 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
             (index, resp_ori_input_ids, resp_ori_mask, generator_context_input_ids, generator_context_mask,
              retriever_context_input_ids, retriever_context_mask, retriever_context_token_type,
              ranker_context_input_ids, ranker_context_mask, ranker_context_token_type,
-             resp_delex_mask, gt_db_idx, times_matrix) = batch
+             resp_delex_mask, gt_db_idx, times_matrix, ent_mark) = batch
             if opt.use_gt_dbs is False:
                 # retriever model get top-k db index
                 retriever_context_embeddings = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
@@ -616,6 +620,8 @@ def run(opt, checkpoint_path):
     )
     train_dial_dataset = data_turn_batch.DialDataset(train_dial_examples, use_delex=opt.use_delex,
                                                      use_times_matrix=opt.ranker_times_matrix, use_gt_dbs=opt.use_gt_dbs)
+
+
     # use global rank and world size to split the eval set on multiple gpus
     eval_dial_examples = data_turn_batch.load_data(
         opt.eval_data,
@@ -623,6 +629,8 @@ def run(opt, checkpoint_path):
         world_size=opt.world_size,
     )
     eval_dial_dataset = data_turn_batch.DialDataset(eval_dial_examples, use_gt_dbs=opt.use_gt_dbs)
+
+
     # use global rank and world size to split the eval set on multiple gpus
     test_dial_examples = data_turn_batch.load_data(
         opt.test_data,
@@ -630,12 +638,17 @@ def run(opt, checkpoint_path):
         world_size=opt.world_size,
     )
     test_dial_dataset = data_turn_batch.DialDataset(test_dial_examples, use_gt_dbs=opt.use_gt_dbs)
+
+
     dial_collator = data_turn_batch.DialCollator(generator_tokenizer, retriever_tokenizer, ranker_tokenizer,
                                                  opt.generator_text_maxlength, opt.retriever_text_maxlength,
                                                  opt.ranker_text_maxlength, opt.answer_maxlength)
 
+
     db_examples = data_turn_batch.load_dbs(opt.dbs)
     db_dataset = data_turn_batch.DBDataset(db_examples, opt.db_type, use_dk=opt.use_dk, dk_mask=opt.dk_mask)
+
+
     generator_db_collator = data_turn_batch.DBCollator(generator_tokenizer, opt.generator_db_maxlength,
                                                        type="generator")
     retriever_db_collator = data_turn_batch.DBCollator(retriever_tokenizer, opt.retriever_db_maxlength,
