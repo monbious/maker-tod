@@ -135,14 +135,12 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                 retriever_all_dbs_embeddings = retriever_embedding_db(retriever_model,
                                                                       retriever_db_dataloader)  # no grad
             elif opt.use_gt_dbs is True:
+                # 每隔100步更新一次all_db模型编码
                 if opt.use_retriever_for_gt is True and (step - 1) % opt.db_emb_update_steps == 0:
                     retriever_all_dbs_embeddings = retriever_embedding_db(retriever_model,
                                                                           retriever_db_dataloader)  # no grad
-                    print('是否进入 ==> ', retriever_all_dbs_embeddings.shape)
                 elif opt.use_retriever_for_gt is False:
                     retriever_all_dbs_embeddings = None
-
-            print('retriever_all_dbs_embeddings ==> ', retriever_all_dbs_embeddings.shape)
 
             (index, resp_ori_input_ids, resp_ori_mask, generator_context_input_ids, generator_context_mask,
              retriever_context_input_ids, retriever_context_mask, retriever_context_token_type,
@@ -171,10 +169,10 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                                                                    output_hidden_states=True,
                                                                    return_dict=True,
                                                                    sent_emb=True).pooler_output  # have grad
-                    # 对话上下文和all db的相关性得分
+                    # 对话上下文和all db的相关性得分,得出的是db的相关性
                     retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
                                                             retriever_all_dbs_embeddings)  # (bs, all_db_num)
-                    # 从相关性得分中按照指定的索引收集元素
+                    # 从相关性得分中按照指定的索引收集元素，挑出gt_db_idx对应的分数，后面再排序
                     retriever_gt_dbs_scores = torch.gather(retriever_all_dbs_scores, 1,
                                                            gt_db_idx.long())  # (bs, gt_db_num)
 
@@ -208,6 +206,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                                                                          ranker_top_k_dbs_mask)
             ranker_context_top_k_dbs_token_type = concat_context_and_dbs_input(ranker_context_token_type,
                                                                                ranker_top_k_dbs_token_type)
+
             if times_matrix is not None and opt.dataset_name != "smd":  # maybe all zeros
                 times_matrix = torch.gather(times_matrix, 1, retriever_top_k_dbs_index.long().repeat(1, 1, times_matrix.size(2)))  # (bs, top_k, num_attr)
 
@@ -244,6 +243,8 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     retriever_top_k_dbs_token_type = torch.gather(
                         retriever_all_dbs_token_type.unsqueeze(0).repeat(bsz, 1, 1), 1,
                         retriever_top_k_dbs_index.long().repeat(1, 1, retriever_db_len))
+
+                    # top-k 的db进入retri-model编码
                     retriever_top_k_dbs_embeddings = retriever_model(
                         input_ids=retriever_top_k_dbs_ids.view(-1, retriever_db_len).long().cuda(),
                         attention_mask=retriever_top_k_dbs_mask.view(-1, retriever_db_len).long().cuda(),
@@ -272,6 +273,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
 
             generator_outputs = generator_model(
                 input_ids=generator_context_top_k_dbs_input_ids.long().cuda(),
+                # 这个掩码，还得看一下
                 attention_mask=generator_context_top_k_dbs_top_r_attr_mask.cuda(),
                 labels=resp_ori_input_ids.long().cuda(),
                 resp_delex_mask=resp_delex_mask.cuda() if resp_delex_mask is not None else None,
@@ -282,6 +284,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
             if decoder_cross_attention_scores is not None and retriever_top_k_dbs_scores is not None:
                 distill_label = decoder_cross_attention_scores.detach()
                 if opt.generator_distill_retriever_loss_type == "kl":
+                    # 这个损失不得其解
                     retriever_loss = kldivloss(retriever_top_k_dbs_scores, distill_label)
                 elif opt.generator_distill_retriever_loss_type == "ce":
                     distill_label = F.softmax(distill_label, dim=-1)
@@ -705,8 +708,6 @@ if __name__ == "__main__":
                    f"_asml-{opt.answer_maxlength}_gdml-{opt.generator_db_maxlength}_rdml-{opt.retriever_db_maxlength}_kdml-{opt.ranker_db_maxlength}" \
                    f"_dus-{opt.db_emb_update_steps}_topd-{opt.top_k_dbs}"
     # assert opt.ranker_times_matrix_start_step <= opt.rank_attribute_start_step <= opt.generator_distill_retriever_start_step
-    # 做一些验证
-    print('opt.db_emb_update_steps ==> ', opt.db_emb_update_steps)
 
     assert opt.ranker_times_matrix_start_step <= opt.rank_attribute_start_step
     if opt.use_ranker is True:

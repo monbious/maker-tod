@@ -98,6 +98,7 @@ class BertForRank(transformers.BertPreTrainedModel):
         else:
             raise ValueError
         ranker_scores = self.ranker_head(ranker_scores)  # (bs, db_num, num_attribute)
+
         if retriever_top_k_dbs_scores is not None and self.model_args.rank_no_retriever_weighted is False:
             top_k_weight = F.softmax(retriever_top_k_dbs_scores, dim=-1).unsqueeze(2)  # (bs, db_num, 1)
             ranker_scores = (ranker_scores * top_k_weight).sum(dim=1)  # (bs, num_attribute)
