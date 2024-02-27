@@ -43,13 +43,14 @@ class ReferenceModel(nn.Module):
             nn.Linear(2 * hidden_size, hidden_size),
             nn.LeakyReLU(0.1),
         )
+        self.scorer = nn.Linear(hidden_size, 1)
 
 
     def forward(self, input_emb, input_lengths, ent_mask):
         hidden_ent = self.selfatten(input_emb, input_lengths, ent_mask)
         refer_outputs, _ = self.reference(input_emb, hidden_ent.unsqueeze(0))
-        refer_hidden = self.selfatten(refer_outputs, input_lengths, ent_mask)
-        return refer_hidden + hidden_ent
+        refer_hidden = self.scorer(refer_outputs).squeeze(-1)
+        return refer_hidden
 
 
 class FiDT5(transformers.T5ForConditionalGeneration):
