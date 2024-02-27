@@ -161,14 +161,19 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                 else:
                     # retriever model get top-k db index
                     # 应该是在这里找相关性和db
-                    retriever_context_embeddings = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
+                    retriver_output = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
                                                                    attention_mask=retriever_context_mask.long().cuda(),
                                                                    token_type_ids=retriever_context_token_type.long().cuda(),
                                                                    output_hidden_states=True,
                                                                    return_dict=True,
-                                                                   sent_emb=True).pooler_output  # have grad
-                    print('retriever_context_embeddings==>', retriever_context_embeddings.shape)
-                    retriever_context_embeddings = refer_model(retriever_context_embeddings, seq_lens, ent_mark)
+                                                                   sent_emb=True)  # have grad
+                    retriever_context_embeddings = retriver_output.pooler_output
+                    retriever_context_output = retriver_output.last_hidden_state
+
+
+                    print('retriever_context_embeddings==>', retriever_context_embeddings.shape, retriever_context_output.shape)
+                    refer_context_hidden = refer_model(retriever_context_output, seq_lens, ent_mark)
+                    retriever_context_embeddings = refer_model.projector(torch.cat((retriever_context_embeddings, refer_context_hidden), dim=-1))
 
                     retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
                                                             retriever_all_dbs_embeddings)  # (bs, all_db_num)

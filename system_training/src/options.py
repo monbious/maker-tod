@@ -24,7 +24,7 @@ class Options():
         self.parser.add_argument('--scheduler', type=str, default='linear')
         self.parser.add_argument('--weight_decay', type=float, default=0.01)
         self.parser.add_argument('--fixed_lr', type=bool, default=False)
-        self.parser.add_argument('--hidden_units', type=int, default=768, help='bert hidden units')
+        self.parser.add_argument('--hidden_units', type=int, default=128, help='retriver hidden units')
 
         self.parser.add_argument('--retriever_warmup_steps', type=int, default=0, help='the step meaning is same as total_step')
         self.parser.add_argument('--retriever_total_steps', type=int, default=32000)
