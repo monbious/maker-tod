@@ -33,10 +33,11 @@ python train.py \
     --dk_mask True \
     --use_checkpoint \
     --per_gpu_eval_batch_size 4 \
-    --eval_freq 4900 \
+    --eval_freq 2500 \
     --total_steps ${ES} \
     --retriever_total_steps ${ES} \
     --ranker_total_steps ${ES} \
+    --reference_total_steps ${ES} \
     --end_eval_step ${ES} \
     --use_gt_dbs True \
     --use_retriever_for_gt True \

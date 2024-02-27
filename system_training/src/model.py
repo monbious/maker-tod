@@ -6,6 +6,44 @@ from torch import nn
 from torch.nn import CrossEntropyLoss
 import numpy as np
 
+class SelfAttention(nn.Module):
+    """
+    scores each element of the sequence with a linear layer and uses the normalized scores to compute a context over the sequence.
+    """
+
+    def __init__(self, d_hid, dropout=0.):
+        super().__init__()
+        self.scorer = nn.Linear(d_hid, 1)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, inp, lens, ent_mask=None):
+        batch_size, seq_len, d_feat = inp.size()
+        inp = self.dropout(inp)
+        scores = self.scorer(inp.contiguous().view(-1, d_feat)).view(batch_size, seq_len)
+        max_len = max(lens)
+        for i, l in enumerate(lens):
+            if l < max_len:
+                scores.data[i, l:] = -np.inf
+        if ent_mask is not None:
+            for ii in range(scores.size(0)):
+                if 1 in ent_mask[ii]:
+                    scores[ii].masked_fill((ent_mask[ii] == 2), -np.inf)
+        scores = F.softmax(scores, dim=1)
+        context = scores.unsqueeze(2).expand_as(inp).mul(inp).sum(1)
+        return context
+
+
+class ReferenceModel(nn.Module):
+
+    def __init__(self, hidden_size, dropout):
+        self.reference = nn.GRU(hidden_size, hidden_size, dropout=dropout, batch_first=True)
+        self.selfatten = SelfAttention(hidden_size, dropout=dropout)
+
+    def forward(self, input_emb, input_lengths, ent_mask):
+        hidden_ent = self.selfatten(input_emb, input_lengths, ent_mask)
+        refer_outputs, _ = self.reference(input_emb, hidden_ent.unsqueeze(0))
+        return input_emb + refer_outputs
+
 
 class FiDT5(transformers.T5ForConditionalGeneration):
     def __init__(self, config, model_args):

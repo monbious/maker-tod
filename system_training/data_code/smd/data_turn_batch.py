@@ -109,6 +109,7 @@ class DialDataset(torch.utils.data.Dataset):
         context_splits = context.split(' ')
         ent_mark = [2 if word not in dial_kb_set else 1 for word in context_splits]
         return_dict['ent_mark'] = ent_mark
+        return_dict['seq_len'] = len(context_splits)
 
         add_args = {}
         if self.use_delex is True:
@@ -225,11 +226,12 @@ class DialCollator(object):
 
         max_len = max([len(ex["ent_mark"]) for ex in batch])
         ent_mark = torch.tensor([ex["ent_mark"] + [0] * (max_len - len(ex["ent_mark"])) for ex in batch])
+        seq_lens = [ex["seq_len"] for ex in batch]
 
         return index, resp_ori_input_ids, resp_ori_mask, generator_context_input_ids, generator_context_mask, \
                retriever_context_input_ids, retriever_context_mask, retriever_context_token_type, \
                ranker_context_input_ids, ranker_context_mask, ranker_context_token_type, \
-               resp_delex_mask, gt_db_idx, times_matrix, ent_mark
+               resp_delex_mask, gt_db_idx, times_matrix, ent_mark, seq_lens
 
 
 class DBDataset(torch.utils.data.Dataset):

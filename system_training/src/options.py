@@ -24,6 +24,7 @@ class Options():
         self.parser.add_argument('--scheduler', type=str, default='linear')
         self.parser.add_argument('--weight_decay', type=float, default=0.01)
         self.parser.add_argument('--fixed_lr', type=bool, default=False)
+        self.parser.add_argument('--hidden_units', type=int, default=768, help='bert hidden units')
 
         self.parser.add_argument('--retriever_warmup_steps', type=int, default=0, help='the step meaning is same as total_step')
         self.parser.add_argument('--retriever_total_steps', type=int, default=32000)
@@ -51,6 +52,17 @@ class Options():
         self.parser.add_argument('--ranker_scheduler', type=str, default='linear')
         self.parser.add_argument('--ranker_weight_decay', type=float, default=0.01)
         self.parser.add_argument('--ranker_fixed_lr', type=bool, default=False)
+
+        self.parser.add_argument('--reference_optim', type=str, default='adamw')
+        self.parser.add_argument('--reference_lr', type=float, default=0.0001, help='learning rate')
+        self.parser.add_argument('--reference_weight_decay', type=float, default=0.01)
+        self.parser.add_argument('--reference_scheduler', type=str, default='linear')
+        self.parser.add_argument('--reference_scheduler_steps', type=int, default=None,
+                                 help='the step meaning is same as total_step')
+        self.parser.add_argument('--reference_total_steps', type=int, default=32000)
+        self.parser.add_argument('--reference_warmup_steps', type=int, default=0,
+                                 help='the step meaning is same as total_step')
+        self.parser.add_argument('--reference_fixed_lr', type=bool, default=False)
 
     def add_eval_options(self):
         self.parser.add_argument('--test_data', type=str, default='others/data/mwoz_gptke/data_used/RRG_data1_times_gtdb_gesa_times-cr-dyn/test.json', help='path of test data')
