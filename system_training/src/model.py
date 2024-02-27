@@ -36,6 +36,7 @@ class SelfAttention(nn.Module):
 class ReferenceModel(nn.Module):
 
     def __init__(self, hidden_size, dropout):
+        super(ReferenceModel, self).__init__()
         self.reference = nn.GRU(hidden_size, hidden_size, dropout=dropout, batch_first=True)
         self.selfatten = SelfAttention(hidden_size, dropout=dropout)
 

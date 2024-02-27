@@ -167,7 +167,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                                                                    output_hidden_states=True,
                                                                    return_dict=True,
                                                                    sent_emb=True).pooler_output  # have grad
-
+                    print('retriever_context_embeddings==>', retriever_context_embeddings.shape)
                     retriever_context_embeddings = refer_model(retriever_context_embeddings, seq_lens, ent_mark)
 
                     retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
