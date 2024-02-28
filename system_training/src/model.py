@@ -35,22 +35,20 @@ class SelfAttention(nn.Module):
 
 class ReferenceModel(nn.Module):
 
-    def __init__(self, hidden_size, dropout):
+    def __init__(self, opt):
         super(ReferenceModel, self).__init__()
-        self.reference = nn.GRU(hidden_size, hidden_size, dropout=dropout, batch_first=True)
-        self.selfatten = SelfAttention(hidden_size, dropout=dropout)
-        self.projector = nn.Sequential(
-            nn.Linear(2 * hidden_size, hidden_size),
-            nn.LeakyReLU(0.1),
-        )
-        self.scorer = nn.Linear(hidden_size, 1)
+        self.reference = nn.GRU(opt.hidden_units, opt.retriever_text_maxlength, dropout=opt.dropout, batch_first=True)
+        self.selfatten = SelfAttention(opt.retriever_text_maxlength, dropout=opt.dropout)
+        # self.projector = nn.Sequential(
+        #     nn.Linear(opt.hidden_units, opt.retriever_text_maxlength),
+        #     nn.LeakyReLU(0.1),
+        # )
 
 
-    def forward(self, input_emb, input_lengths, ent_mask):
-        hidden_ent = self.selfatten(input_emb, input_lengths, ent_mask)
-        refer_outputs, _ = self.reference(input_emb, hidden_ent.unsqueeze(0))
-        refer_hidden = self.scorer(refer_outputs).squeeze(-1)
-        return refer_hidden
+    def forward(self, input_emb, input_lengths, ent_mask, ctx_emb):
+        refer_outputs, _ = self.reference(input_emb, ctx_emb)
+        refer_hidden = self.selfatten(refer_outputs, input_lengths, ent_mask)
+        return refer_hidden + ctx_emb
 
 
 class FiDT5(transformers.T5ForConditionalGeneration):
