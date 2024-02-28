@@ -44,9 +44,8 @@ class ReferenceModel(nn.Module):
         #     nn.LeakyReLU(0.1),
         # )
 
-
     def forward(self, input_emb, input_lengths, ent_mask, ctx_emb):
-        refer_outputs, _ = self.reference(input_emb, ctx_emb)
+        refer_outputs, _ = self.reference(input_emb, ctx_emb.unsqueeze(0))
         refer_hidden = self.selfatten(refer_outputs, input_lengths, ent_mask)
         return refer_hidden + ctx_emb
 
