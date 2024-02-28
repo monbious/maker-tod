@@ -170,11 +170,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     retriever_context_embeddings = retriver_output.pooler_output
                     retriever_context_output = retriver_output.last_hidden_state
 
-
-                    # print('retriever_context_embeddings==>', retriever_context_embeddings.shape, retriever_context_output.shape)
-                    refer_context_hidden = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda())
-                    # retriever_context_embeddings = refer_model.projector(torch.cat((retriever_context_embeddings, refer_context_hidden), dim=-1))
-                    retriever_context_embeddings = refer_context_hidden + retriever_context_embeddings
+                    retriever_context_embeddings = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(), retriever_context_embeddings)
 
                     retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
                                                             retriever_all_dbs_embeddings)  # (bs, all_db_num)
