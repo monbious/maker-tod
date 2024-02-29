@@ -370,6 +370,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     log += f" glr: {generator_scheduler.get_last_lr()[0]:.5f}"
                     log += f" rlr: {retriever_scheduler.get_last_lr()[0]:.5f}"
                     log += f" klr: {ranker_scheduler.get_last_lr()[0]:.5f}"
+                    log += f" flr: {refer_scheduler.get_last_lr()[0]:.5f}"
                     logger.warning(log)
                     if tb_logger is not None:
                         for key, val in dev_metric.items():
