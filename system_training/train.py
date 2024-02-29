@@ -621,7 +621,7 @@ def run(opt, checkpoint_path):
     #reference model
     refer_model = src.model.ReferenceModel(opt)
     refer_model = refer_model.to(opt.local_rank)
-    refer_optimizer, refer_scheduler = src.util.set_ranker_optim(opt, refer_model)
+    refer_optimizer, refer_scheduler = src.util.set_reference_optim(opt, refer_model)
 
     if opt.is_distributed:
         generator_model = torch.nn.parallel.DistributedDataParallel(
