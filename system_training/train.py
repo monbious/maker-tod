@@ -154,9 +154,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                                                                sent_emb=True)  # have grad
                 retriever_context_embeddings = retriver_output.pooler_output
                 retriever_context_output = retriver_output.last_hidden_state
-
-                retriever_context_embeddings = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(),
-                                                           retriever_context_embeddings)
+                retriever_context_embeddings = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(), retriever_context_embeddings)
 
                 retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
                                                         retriever_all_dbs_embeddings)  # (bs, all_db_num)
@@ -442,9 +440,7 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
                                                                sent_emb=True)  # have grad
                 retriever_context_embeddings = retriver_output.pooler_output
                 retriever_context_output = retriver_output.last_hidden_state
-
-                retriever_context_embeddings = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(),
-                                                           retriever_context_embeddings)
+                retriever_context_embeddings = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(), retriever_context_embeddings)
 
                 retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
                                                         retriever_all_dbs_embeddings)  # (bs, all_db_num)
