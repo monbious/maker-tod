@@ -146,12 +146,18 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
              resp_delex_mask, gt_db_idx, times_matrix, ent_mark, seq_lens) = batch
             # retriever model get top-k db index
             if opt.use_gt_dbs is False:
-                retriever_context_embeddings = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
+                retriver_output = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
                                                                attention_mask=retriever_context_mask.long().cuda(),
                                                                token_type_ids=retriever_context_token_type.long().cuda(),
                                                                output_hidden_states=True,
                                                                return_dict=True,
-                                                               sent_emb=True).pooler_output  # have grad
+                                                               sent_emb=True)  # have grad
+                retriever_context_embeddings = retriver_output.pooler_output
+                retriever_context_output = retriver_output.last_hidden_state
+
+                retriever_context_embeddings = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(),
+                                                           retriever_context_embeddings)
+
                 retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
                                                         retriever_all_dbs_embeddings)  # (bs, all_db_num)
                 retriever_top_k_dbs_index = retriever_all_dbs_scores.sort(-1, True)[1][:, :opt.top_k_dbs].unsqueeze(2)  # (bs, top_k, 1)
@@ -308,10 +314,12 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     retriever_scheduler.step()
                     retriever_model.zero_grad()
 
+                if not opt.use_gt_dbs or (opt.use_gt_dbs and opt.use_retriever_for_gt):
                     torch.nn.utils.clip_grad_norm_(refer_model.parameters(), opt.clip)
                     refer_optimizer.step()
                     refer_scheduler.step()
                     refer_model.zero_grad()
+
                 if ranker_times_loss is not None:
                     torch.nn.utils.clip_grad_norm_(ranker_model.parameters(), opt.clip)
                     ranker_optimizer.step()
@@ -426,12 +434,17 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
              resp_delex_mask, gt_db_idx, times_matrix, ent_mark, seq_lens) = batch
             if opt.use_gt_dbs is False:
                 # retriever model get top-k db index
-                retriever_context_embeddings = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
+                retriver_output = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
                                                                attention_mask=retriever_context_mask.long().cuda(),
                                                                token_type_ids=retriever_context_token_type.long().cuda(),
                                                                output_hidden_states=True,
                                                                return_dict=True,
-                                                               sent_emb=True).pooler_output  # have grad
+                                                               sent_emb=True)  # have grad
+                retriever_context_embeddings = retriver_output.pooler_output
+                retriever_context_output = retriver_output.last_hidden_state
+
+                retriever_context_embeddings = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(),
+                                                           retriever_context_embeddings)
 
                 retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
                                                         retriever_all_dbs_embeddings)  # (bs, all_db_num)
