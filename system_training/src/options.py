@@ -54,8 +54,8 @@ class Options():
         self.parser.add_argument('--ranker_fixed_lr', type=bool, default=False)
 
         self.parser.add_argument('--reference_optim', type=str, default='adamw')
-        self.parser.add_argument('--reference_lr', type=float, default=0.01, help='learning rate')
-        self.parser.add_argument('--reference_weight_decay', type=float, default=0.1)
+        self.parser.add_argument('--reference_lr', type=float, default=0.001, help='learning rate')
+        self.parser.add_argument('--reference_weight_decay', type=float, default=0.01)
         self.parser.add_argument('--reference_scheduler', type=str, default='linear')
         self.parser.add_argument('--reference_scheduler_steps', type=int, default=None,
                                  help='the step meaning is same as total_step')
