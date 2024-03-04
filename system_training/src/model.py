@@ -46,9 +46,9 @@ class ReferenceModel(nn.Module):
         # )
 
     def forward(self, input_emb, input_lengths, ent_mask, ctx_emb):
-        hidden = self.selfatten(input_emb, input_lengths, ent_mask)
-        refer_hidden, _ = self.reference(hidden, ctx_emb)
-        refer_hidden = refer_hidden + ctx_emb
+        hidden = self.selfatten(input_emb, input_lengths, ent_mask).unsqueeze(1)
+        refer_hidden, _ = self.reference(hidden, ctx_emb.unsqueeze(0))
+        refer_hidden = refer_hidden.squeeze(1) + ctx_emb
 
         refer_outputs, _ = self.reference(input_emb, refer_hidden.unsqueeze(0))
         refer_outputs_hidden = self.selfatten1(refer_outputs, input_lengths, ent_mask)
