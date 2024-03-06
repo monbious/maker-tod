@@ -183,7 +183,7 @@ def set_reference_optim(opt, model):
         scheduler = WarmupLinearScheduler(optimizer, warmup_steps=opt.reference_warmup_steps, scheduler_steps=scheduler_steps,
                                           min_ratio=0.1, fixed_lr=opt.reference_fixed_lr)
     # 暂用柏拉图这个
-    scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.8, patience=1,
+    scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=1,
                                                min_lr=5e-4, verbose=True)
     return optimizer, scheduler
 
