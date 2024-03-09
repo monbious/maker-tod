@@ -58,6 +58,7 @@ def entity_to_text_w_dk_mask(entity, dk_mask=False):
     mask = []
     for key, val in entity.items():
         text += f" {key} {val} <sep_attributes>"
+        # text += f" {val} <sep_attributes>"
         if val == "dontknow":
             mask.append(0)
         else:
@@ -72,8 +73,8 @@ def entity_to_text_wo_dk(entity):
     text = "<database>"
     for key, val in entity.items():
         if val != "dontknow":
-            # text += f" {key} {val} <sep_attributes>"
-            text += f" {val} <sep_attributes>"
+            text += f" {key} {val} <sep_attributes>"
+            # text += f" {val} <sep_attributes>"
     return text
 
 

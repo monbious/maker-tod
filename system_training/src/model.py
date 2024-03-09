@@ -50,7 +50,7 @@ class ReferenceModel(nn.Module):
         refer_outputs, _ = self.reference(input_emb, ctx_emb.unsqueeze(0))
         refer_outputs_hidden = self.selfatten1(refer_outputs, input_lengths, ent_mask)
 
-        # refer_outputs_hidden = refer_outputs_hidden + ctx_emb
+        refer_outputs_hidden = refer_outputs_hidden + ctx_emb
 
         refer_outputs1, _ = self.reference1(refer_outputs, refer_outputs_hidden.unsqueeze(0))
         refer_outputs_hidden1 = self.selfatten1(refer_outputs1, input_lengths, ent_mask)
