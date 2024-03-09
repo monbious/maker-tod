@@ -72,7 +72,8 @@ def entity_to_text_wo_dk(entity):
     text = "<database>"
     for key, val in entity.items():
         if val != "dontknow":
-            text += f" {key} {val} <sep_attributes>"
+            # text += f" {key} {val} <sep_attributes>"
+            text += f" {val} <sep_attributes>"
     return text
 
 
