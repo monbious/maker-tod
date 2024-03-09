@@ -439,7 +439,8 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
             if opt.use_gt_dbs is False:
                 # retriever model get top-k db index
                 retriver_output = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
-                                                               attention_mask=retriever_context_mask.long().cuda(),
+                                                               # attention_mask=retriever_context_mask.long().cuda(),
+                                                               attention_mask=ent_mark.long().cuda(),
                                                                token_type_ids=retriever_context_token_type.long().cuda(),
                                                                output_hidden_states=True,
                                                                return_dict=True,
@@ -463,7 +464,8 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
                 else:
                     # retriever model get top-k db index
                     retriver_output = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
-                                                                   attention_mask=retriever_context_mask.long().cuda(),
+                                                                   # attention_mask=retriever_context_mask.long().cuda(),
+                                                                   attention_mask=ent_mark.long().cuda(),
                                                                    token_type_ids=retriever_context_token_type.long().cuda(),
                                                                    output_hidden_states=True,
                                                                    return_dict=True,
