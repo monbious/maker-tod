@@ -147,15 +147,20 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
             # retriever model get top-k db index
             if opt.use_gt_dbs is False:
                 retriver_output = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
-                                                               # attention_mask=retriever_context_mask.long().cuda(),
-                                                               attention_mask=ent_mark.long().cuda(),
+                                                               attention_mask=retriever_context_mask.long().cuda(),
                                                                token_type_ids=retriever_context_token_type.long().cuda(),
                                                                output_hidden_states=True,
                                                                return_dict=True,
                                                                sent_emb=True)  # have grad
                 retriever_context_embeddings = retriver_output.pooler_output
-                retriever_context_output = retriver_output.last_hidden_state
-                retriever_context_embeddings = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(), retriever_context_embeddings)
+
+                retriever_ent_embeddings = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
+                                                  attention_mask=ent_mark.long().cuda(),
+                                                  token_type_ids=retriever_context_token_type.long().cuda(),
+                                                  output_hidden_states=True,
+                                                  return_dict=True,
+                                                  sent_emb=True).pooler_output  # have grad
+                retriever_context_embeddings = retriever_context_embeddings + retriever_ent_embeddings
 
                 retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
                                                         retriever_all_dbs_embeddings)  # (bs, all_db_num)
@@ -167,16 +172,20 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     # retriever model get top-k db index
                     # 应该是在这里找相关性和db
                     retriver_output = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
-                                                                   # attention_mask=retriever_context_mask.long().cuda(),
-                                                                   attention_mask=ent_mark.long().cuda(),
+                                                                   attention_mask=retriever_context_mask.long().cuda(),
                                                                    token_type_ids=retriever_context_token_type.long().cuda(),
                                                                    output_hidden_states=True,
                                                                    return_dict=True,
                                                                    sent_emb=True)  # have grad
                     retriever_context_embeddings = retriver_output.pooler_output
-                    retriever_context_output = retriver_output.last_hidden_state
 
-                    retriever_context_embeddings = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(), retriever_context_embeddings)
+                    retriever_ent_embeddings = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
+                                                               attention_mask=ent_mark.long().cuda(),
+                                                               token_type_ids=retriever_context_token_type.long().cuda(),
+                                                               output_hidden_states=True,
+                                                               return_dict=True,
+                                                               sent_emb=True).pooler_output  # have grad
+                    retriever_context_embeddings = retriever_context_embeddings + retriever_ent_embeddings
 
                     retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
                                                             retriever_all_dbs_embeddings)  # (bs, all_db_num)
@@ -439,15 +448,20 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
             if opt.use_gt_dbs is False:
                 # retriever model get top-k db index
                 retriver_output = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
-                                                               # attention_mask=retriever_context_mask.long().cuda(),
-                                                               attention_mask=ent_mark.long().cuda(),
+                                                               attention_mask=retriever_context_mask.long().cuda(),
                                                                token_type_ids=retriever_context_token_type.long().cuda(),
                                                                output_hidden_states=True,
                                                                return_dict=True,
                                                                sent_emb=True)  # have grad
                 retriever_context_embeddings = retriver_output.pooler_output
-                retriever_context_output = retriver_output.last_hidden_state
-                retriever_context_embeddings = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(), retriever_context_embeddings)
+
+                retriever_ent_embeddings = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
+                                                           attention_mask=ent_mark.long().cuda(),
+                                                           token_type_ids=retriever_context_token_type.long().cuda(),
+                                                           output_hidden_states=True,
+                                                           return_dict=True,
+                                                           sent_emb=True).pooler_output  # have grad
+                retriever_context_embeddings = retriever_context_embeddings + retriever_ent_embeddings
 
                 retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
                                                         retriever_all_dbs_embeddings)  # (bs, all_db_num)
@@ -464,16 +478,20 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
                 else:
                     # retriever model get top-k db index
                     retriver_output = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
-                                                                   # attention_mask=retriever_context_mask.long().cuda(),
-                                                                   attention_mask=ent_mark.long().cuda(),
+                                                                   attention_mask=retriever_context_mask.long().cuda(),
                                                                    token_type_ids=retriever_context_token_type.long().cuda(),
                                                                    output_hidden_states=True,
                                                                    return_dict=True,
                                                                    sent_emb=True)  # have grad
                     retriever_context_embeddings = retriver_output.pooler_output
-                    retriever_context_output = retriver_output.last_hidden_state
 
-                    retriever_context_embeddings = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(), retriever_context_embeddings)
+                    retriever_ent_embeddings = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
+                                                               attention_mask=ent_mark.long().cuda(),
+                                                               token_type_ids=retriever_context_token_type.long().cuda(),
+                                                               output_hidden_states=True,
+                                                               return_dict=True,
+                                                               sent_emb=True).pooler_output  # have grad
+                    retriever_context_embeddings = retriever_context_embeddings + retriever_ent_embeddings
 
                     retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
                                                             retriever_all_dbs_embeddings)  # (bs, all_db_num)
