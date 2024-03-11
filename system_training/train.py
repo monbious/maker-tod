@@ -160,7 +160,6 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                                                   output_hidden_states=True,
                                                   return_dict=True,
                                                   sent_emb=True).pooler_output  # have grad
-                retriever_context_embeddings = retriever_context_embeddings + retriever_ent_embeddings
 
                 retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
                                                         retriever_all_dbs_embeddings)  # (bs, all_db_num)
@@ -185,7 +184,6 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                                                                output_hidden_states=True,
                                                                return_dict=True,
                                                                sent_emb=True).pooler_output  # have grad
-                    retriever_context_embeddings = retriever_context_embeddings + retriever_ent_embeddings
 
                     retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
                                                             retriever_all_dbs_embeddings)  # (bs, all_db_num)
@@ -240,7 +238,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     output_hidden_states=True,
                     return_dict=True,
                     sent_emb=True).pooler_output.view(bsz, opt.top_k_dbs, -1)  # have grad
-                retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_context_embeddings.unsqueeze(1),
+                retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_ent_embeddings.unsqueeze(1),
                                                           retriever_top_k_dbs_embeddings).squeeze(1)  # (bs, top_k)
             else:
                 if opt.use_retriever_for_gt is False:
@@ -263,7 +261,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                         output_hidden_states=True,
                         return_dict=True,
                         sent_emb=True).pooler_output.view(bsz, opt.top_k_dbs, -1)  # have grad
-                    retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_context_embeddings.unsqueeze(1),
+                    retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_ent_embeddings.unsqueeze(1),
                                                               retriever_top_k_dbs_embeddings).squeeze(1)  # (bs, top_k)
             if opt.use_ranker is True:  # step operations is inside
                 ranker_outputs = ranker_model(
@@ -345,12 +343,12 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                                                  dial_collator, generator_tokenizer, opt, retriever_all_dbs_embeddings,
                                                  generator_all_dbs_ids, generator_all_dbs_mask, ranker_all_dbs_ids,
                                                  ranker_all_dbs_mask, ranker_all_dbs_token_type, step,
-                                                 generator_db_collator, refer_model)
+                                                 generator_db_collator, refer_model, retriever_all_dbs_ids, retriever_all_dbs_mask, retriever_all_dbs_token_type)
                 test_score, test_metric = evaluate(generator_model, retriever_model, ranker_model, test_dial_dataset,
                                                    dial_collator, generator_tokenizer, opt, retriever_all_dbs_embeddings,
                                                    generator_all_dbs_ids, generator_all_dbs_mask, ranker_all_dbs_ids,
                                                    ranker_all_dbs_mask, ranker_all_dbs_token_type, step,
-                                                   generator_db_collator, refer_model)
+                                                   generator_db_collator, refer_model, retriever_all_dbs_ids, retriever_all_dbs_mask, retriever_all_dbs_token_type)
                 if opt.is_main:
                     logger.warning("Continue training")
                 generator_model.train()
@@ -419,7 +417,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
 
 def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, dial_collator, generator_tokenizer, opt,
              retriever_all_dbs_embeddings, generator_all_dbs_ids, generator_all_dbs_mask, ranker_all_dbs_ids,
-             ranker_all_dbs_mask, ranker_all_dbs_token_type, step, generator_db_collator, refer_model):
+             ranker_all_dbs_mask, ranker_all_dbs_token_type, step, generator_db_collator, refer_model, retriever_all_dbs_ids, retriever_all_dbs_mask, retriever_all_dbs_token_type):
     sampler = SequentialSampler(eval_dial_dataset)
     eval_dial_dataloader = DataLoader(eval_dial_dataset,
                                       sampler=sampler,
@@ -461,7 +459,6 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
                                                            output_hidden_states=True,
                                                            return_dict=True,
                                                            sent_emb=True).pooler_output  # have grad
-                retriever_context_embeddings = retriever_context_embeddings + retriever_ent_embeddings
 
                 retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
                                                         retriever_all_dbs_embeddings)  # (bs, all_db_num)
@@ -491,7 +488,6 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
                                                                output_hidden_states=True,
                                                                return_dict=True,
                                                                sent_emb=True).pooler_output  # have grad
-                    retriever_context_embeddings = retriever_context_embeddings + retriever_ent_embeddings
 
                     retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
                                                             retriever_all_dbs_embeddings)  # (bs, all_db_num)
@@ -524,15 +520,61 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
                                                                          ranker_top_k_dbs_mask)
             ranker_context_top_k_dbs_token_type = concat_context_and_dbs_input(ranker_context_token_type,
                                                                                ranker_top_k_dbs_token_type)
+            # if opt.use_gt_dbs is False:
+            #     retriever_top_k_dbs_scores = torch.gather(retriever_all_dbs_scores, 1,
+            #                                               retriever_top_k_dbs_index.long().squeeze(2))  # (bs, top_k)
+            # else:
+            #     if opt.use_retriever_for_gt is False:
+            #         retriever_top_k_dbs_scores = None
+            #     else:
+            #         retriever_top_k_dbs_scores = torch.gather(retriever_all_dbs_scores, 1,
+            #                                                   retriever_top_k_dbs_index.long().squeeze(2))  # (bs, top_k)
+
+
             if opt.use_gt_dbs is False:
-                retriever_top_k_dbs_scores = torch.gather(retriever_all_dbs_scores, 1,
-                                                          retriever_top_k_dbs_index.long().squeeze(2))  # (bs, top_k)
+                # re-calc top-k dbs embedding (have grad) then get top-k retrieve scores
+                retriever_db_len = retriever_all_dbs_ids.size(-1)
+                retriever_top_k_dbs_ids = torch.gather(retriever_all_dbs_ids.unsqueeze(0).repeat(bsz, 1, 1), 1,
+                                                       retriever_top_k_dbs_index.long().repeat(1, 1, retriever_db_len))
+                retriever_top_k_dbs_mask = torch.gather(retriever_all_dbs_mask.unsqueeze(0).repeat(bsz, 1, 1), 1,
+                                                        retriever_top_k_dbs_index.long().repeat(1, 1, retriever_db_len))
+                retriever_top_k_dbs_token_type = torch.gather(
+                    retriever_all_dbs_token_type.unsqueeze(0).repeat(bsz, 1, 1), 1,
+                    retriever_top_k_dbs_index.long().repeat(1, 1, retriever_db_len))
+                retriever_top_k_dbs_embeddings = retriever_model(
+                    input_ids=retriever_top_k_dbs_ids.view(-1, retriever_db_len).long().cuda(),
+                    attention_mask=retriever_top_k_dbs_mask.view(-1, retriever_db_len).long().cuda(),
+                    token_type_ids=retriever_top_k_dbs_token_type.view(-1, retriever_db_len).long().cuda(),
+                    output_hidden_states=True,
+                    return_dict=True,
+                    sent_emb=True).pooler_output.view(bsz, opt.top_k_dbs, -1)  # have grad
+                retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_ent_embeddings.unsqueeze(1),
+                                                          retriever_top_k_dbs_embeddings).squeeze(1)  # (bs, top_k)
             else:
                 if opt.use_retriever_for_gt is False:
                     retriever_top_k_dbs_scores = None
                 else:
-                    retriever_top_k_dbs_scores = torch.gather(retriever_all_dbs_scores, 1,
-                                                              retriever_top_k_dbs_index.long().squeeze(2))  # (bs, top_k)
+                    retriever_db_len = retriever_all_dbs_ids.size(-1)
+                    retriever_top_k_dbs_ids = torch.gather(retriever_all_dbs_ids.unsqueeze(0).repeat(bsz, 1, 1), 1,
+                                                           retriever_top_k_dbs_index.long().repeat(1, 1,
+                                                                                                   retriever_db_len))
+                    retriever_top_k_dbs_mask = torch.gather(retriever_all_dbs_mask.unsqueeze(0).repeat(bsz, 1, 1), 1,
+                                                            retriever_top_k_dbs_index.long().repeat(1, 1,
+                                                                                                    retriever_db_len))
+                    retriever_top_k_dbs_token_type = torch.gather(
+                        retriever_all_dbs_token_type.unsqueeze(0).repeat(bsz, 1, 1), 1,
+                        retriever_top_k_dbs_index.long().repeat(1, 1, retriever_db_len))
+                    retriever_top_k_dbs_embeddings = retriever_model(
+                        input_ids=retriever_top_k_dbs_ids.view(-1, retriever_db_len).long().cuda(),
+                        attention_mask=retriever_top_k_dbs_mask.view(-1, retriever_db_len).long().cuda(),
+                        token_type_ids=retriever_top_k_dbs_token_type.view(-1, retriever_db_len).long().cuda(),
+                        output_hidden_states=True,
+                        return_dict=True,
+                        sent_emb=True).pooler_output.view(bsz, opt.top_k_dbs, -1)  # have grad
+                    retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_ent_embeddings.unsqueeze(1),
+                                                              retriever_top_k_dbs_embeddings).squeeze(1)  # (bs, top_k)
+
+
             if opt.use_ranker is True:  # step operations is inside
                 ranker_outputs = ranker_model(
                     input_ids=ranker_context_top_k_dbs_input_ids.long().cuda(),
