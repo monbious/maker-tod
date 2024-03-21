@@ -160,6 +160,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                                                   output_hidden_states=True,
                                                   return_dict=True,
                                                   sent_emb=True).pooler_output  # have grad
+                retriever_context_embeddings = retriever_ent_embeddings + retriever_context_embeddings
 
                 retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
                                                         retriever_all_dbs_embeddings)  # (bs, all_db_num)
@@ -184,6 +185,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                                                                output_hidden_states=True,
                                                                return_dict=True,
                                                                sent_emb=True).pooler_output  # have grad
+                    retriever_context_embeddings = retriever_ent_embeddings + retriever_context_embeddings
 
                     retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
                                                             retriever_all_dbs_embeddings)  # (bs, all_db_num)
@@ -238,7 +240,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     output_hidden_states=True,
                     return_dict=True,
                     sent_emb=True).pooler_output.view(bsz, opt.top_k_dbs, -1)  # have grad
-                retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_ent_embeddings.unsqueeze(1),
+                retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_context_embeddings.unsqueeze(1),
                                                           retriever_top_k_dbs_embeddings).squeeze(1)  # (bs, top_k)
             else:
                 if opt.use_retriever_for_gt is False:
@@ -261,7 +263,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                         output_hidden_states=True,
                         return_dict=True,
                         sent_emb=True).pooler_output.view(bsz, opt.top_k_dbs, -1)  # have grad
-                    retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_ent_embeddings.unsqueeze(1),
+                    retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_context_embeddings.unsqueeze(1),
                                                               retriever_top_k_dbs_embeddings).squeeze(1)  # (bs, top_k)
             if opt.use_ranker is True:  # step operations is inside
                 ranker_outputs = ranker_model(
@@ -529,7 +531,6 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
             #     else:
             #         retriever_top_k_dbs_scores = torch.gather(retriever_all_dbs_scores, 1,
             #                                                   retriever_top_k_dbs_index.long().squeeze(2))  # (bs, top_k)
-
 
             if opt.use_gt_dbs is False:
                 # re-calc top-k dbs embedding (have grad) then get top-k retrieve scores
