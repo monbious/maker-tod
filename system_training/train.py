@@ -156,7 +156,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                 retriever_context_output = retriver_output.last_hidden_state
 
                 retriver_ent_output = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
-                                                  attention_mask=ent_mark.long().cuda(),
+                                                  attention_mask=ent_mark.bool().long().cuda(),
                                                   token_type_ids=retriever_context_token_type.long().cuda(),
                                                   output_hidden_states=True,
                                                   return_dict=True,
@@ -184,7 +184,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     retriever_context_output = retriver_output.last_hidden_state
 
                     retriver_ent_output = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
-                                                          attention_mask=ent_mark.long().cuda(),
+                                                          attention_mask=ent_mark.bool().long().cuda(),
                                                           token_type_ids=retriever_context_token_type.long().cuda(),
                                                           output_hidden_states=True,
                                                           return_dict=True,
@@ -464,7 +464,7 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
                 retriever_context_output = retriver_output.last_hidden_state
 
                 retriver_ent_output = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
-                                                      attention_mask=ent_mark.long().cuda(),
+                                                      attention_mask=ent_mark.bool().long().cuda(),
                                                       token_type_ids=retriever_context_token_type.long().cuda(),
                                                       output_hidden_states=True,
                                                       return_dict=True,
@@ -498,7 +498,7 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
                     retriever_context_output = retriver_output.last_hidden_state
 
                     retriver_ent_output = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
-                                                          attention_mask=ent_mark.long().cuda(),
+                                                          attention_mask=ent_mark.bool().long().cuda(),
                                                           token_type_ids=retriever_context_token_type.long().cuda(),
                                                           output_hidden_states=True,
                                                           return_dict=True,
@@ -738,9 +738,8 @@ def run(opt, checkpoint_path):
 
     generator_db_collator = data_turn_batch.DBCollator(generator_tokenizer, opt.generator_db_maxlength,
                                                        type="generator")
-    retriever_db_collator = data_turn_batch.DBCollator(retriever_tokenizer, opt.retriever_db_maxlength,
-                                                       type="retriever")
-    ranker_db_collator = data_turn_batch.DBCollator(ranker_tokenizer, opt.ranker_db_maxlength, type="ranker")
+    retriever_db_collator = data_turn_batch.DBCollator(retriever_tokenizer, opt.retriever_db_maxlength)
+    ranker_db_collator = data_turn_batch.DBCollator(ranker_tokenizer, opt.ranker_db_maxlength)
 
     step, best_dev_score = 0, 0.0
     if opt.is_main:
