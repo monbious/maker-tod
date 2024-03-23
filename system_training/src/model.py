@@ -42,7 +42,7 @@ class ReferenceModel(nn.Module):
         self.selfatten = SelfAttention(opt.retriever_text_maxlength, dropout=opt.dropout)
 
     def forward(self, input_emb, input_lengths, ent_mask, ctx_ent_emb, ctx_emb):
-        input_emb_trans, _ = self.reference(input_emb, ctx_emb.unsqueeze(1))
+        input_emb_trans, _ = self.reference(input_emb, ctx_emb.unsqueeze(0))
         input_hidden = self.selfatten(input_emb_trans, input_lengths, ent_mask)
 
         refer_outputs, _ = self.reference1(input_emb_trans, input_hidden.unsqueeze(0))
