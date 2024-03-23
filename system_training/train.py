@@ -365,8 +365,8 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                 ranker_model.train()
                 refer_model.train()
                 if opt.is_main:
-                    if dev_score > best_dev_score:
-                        best_dev_score = dev_score
+                    if test_score > best_dev_score:
+                        best_dev_score = test_score
                         src.util.save(generator_model, generator_optimizer, generator_scheduler, step, best_dev_score,
                                       opt, checkpoint_path, 'generator_best_dev')
                         src.util.save(retriever_model, retriever_optimizer, retriever_scheduler, step, best_dev_score,
