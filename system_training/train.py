@@ -162,10 +162,9 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                                                   return_dict=True,
                                                   sent_emb=True).pooler_output
 
-                retriever_refer_embeddings = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(), retriver_ent_output)
-                retriever_context_embeddings = retriever_context_embeddings + retriever_refer_embeddings
+                retriever_refer_embeddings = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(), retriver_ent_output, retriever_context_embeddings)
 
-                retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
+                retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_refer_embeddings.detach().cpu(),
                                                         retriever_all_dbs_embeddings)  # (bs, all_db_num)
                 retriever_top_k_dbs_index = retriever_all_dbs_scores.sort(-1, True)[1][:, :opt.top_k_dbs].unsqueeze(2)  # (bs, top_k, 1)
             else:
@@ -191,10 +190,9 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                                                           sent_emb=True).pooler_output
 
                     retriever_refer_embeddings = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(),
-                                                             retriver_ent_output)
-                    retriever_context_embeddings = retriever_context_embeddings + retriever_refer_embeddings
+                                                             retriver_ent_output, retriever_context_embeddings)
 
-                    retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
+                    retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_refer_embeddings.detach().cpu(),
                                                             retriever_all_dbs_embeddings)  # (bs, all_db_num)
                     retriever_gt_dbs_scores = torch.gather(retriever_all_dbs_scores, 1,
                                                            gt_db_idx.long())  # (bs, gt_db_num)
@@ -471,10 +469,9 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
                                                       sent_emb=True).pooler_output
 
                 retriever_refer_embeddings = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(),
-                                                         retriver_ent_output)
-                retriever_context_embeddings = retriever_context_embeddings + retriever_refer_embeddings
+                                                         retriver_ent_output, retriever_context_embeddings)
 
-                retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
+                retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_refer_embeddings.detach().cpu(),
                                                         retriever_all_dbs_embeddings)  # (bs, all_db_num)
                 retriever_top_k_dbs_index = retriever_all_dbs_scores.sort(-1, True)[1][:, :opt.top_k_dbs].unsqueeze(2)  # (bs, top_k, 1)
             else:
@@ -505,10 +502,9 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
                                                           sent_emb=True).pooler_output
 
                     retriever_refer_embeddings = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(),
-                                                             retriver_ent_output)
-                    retriever_context_embeddings = retriever_context_embeddings + retriever_refer_embeddings
+                                                             retriver_ent_output, retriever_context_embeddings)
 
-                    retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
+                    retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_refer_embeddings.detach().cpu(),
                                                             retriever_all_dbs_embeddings)  # (bs, all_db_num)
                     retriever_gt_dbs_scores = torch.gather(retriever_all_dbs_scores, 1,
                                                            gt_db_idx.long())  # (bs, gt_db_num)
