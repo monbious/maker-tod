@@ -48,7 +48,7 @@ class ReferenceModel(nn.Module):
         refer_outputs, _ = self.reference1(input_emb_trans, input_hidden.unsqueeze(0))
         refer_hidden = self.selfatten(refer_outputs, input_lengths, ent_mask)
 
-        return refer_hidden + input_hidden + ctx_ent_emb
+        return refer_hidden + input_hidden
 
 
 class FiDT5(transformers.T5ForConditionalGeneration):
