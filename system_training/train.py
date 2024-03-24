@@ -734,8 +734,8 @@ def run(opt, checkpoint_path):
 
     generator_db_collator = data_turn_batch.DBCollator(generator_tokenizer, opt.generator_db_maxlength,
                                                        type="generator")
-    retriever_db_collator = data_turn_batch.DBCollator(retriever_tokenizer, opt.retriever_db_maxlength)
-    ranker_db_collator = data_turn_batch.DBCollator(ranker_tokenizer, opt.ranker_db_maxlength)
+    retriever_db_collator = data_turn_batch.DBCollator(retriever_tokenizer, opt.retriever_db_maxlength, type="retriever")
+    ranker_db_collator = data_turn_batch.DBCollator(ranker_tokenizer, opt.ranker_db_maxlength, type="ranker")
 
     step, best_dev_score = 0, 0.0
     if opt.is_main:
