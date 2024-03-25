@@ -168,7 +168,8 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                                                         retriever_all_dbs_embeddings)  # (bs, all_db_num)
 
                 retriever_all_dbs_props = torch.softmax(retriever_all_dbs_scores, dim=-1)
-                retriever_all_dbs_embeddings_skip = retriever_embedding_db(retriever_model,
+                if step % opt.accumulation_steps == 0:
+                    retriever_all_dbs_embeddings_skip = retriever_embedding_db(retriever_model,
                                                                       retriever_db_dataloader, live=True)
                 retriever_all_one_embeddings = torch.matmul(retriever_all_dbs_props, retriever_all_dbs_embeddings_skip)
                 retriever_refer_embeddings = retriever_refer_embeddings + retriever_all_one_embeddings.cuda()
@@ -205,7 +206,8 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                                                             retriever_all_dbs_embeddings)  # (bs, all_db_num)
 
                     retriever_all_dbs_props = torch.softmax(retriever_all_dbs_scores, dim=-1)
-                    retriever_all_dbs_embeddings_skip = retriever_embedding_db(retriever_model,
+                    if step % opt.accumulation_steps == 0:
+                        retriever_all_dbs_embeddings_skip = retriever_embedding_db(retriever_model,
                                                                                retriever_db_dataloader, live=True)
                     retriever_all_one_embeddings = torch.matmul(retriever_all_dbs_props, retriever_all_dbs_embeddings_skip)
                     retriever_refer_embeddings = retriever_refer_embeddings + retriever_all_one_embeddings.cuda()
