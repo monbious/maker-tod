@@ -33,7 +33,7 @@ python train.py \
     --dk_mask True \
     --use_checkpoint \
     --per_gpu_eval_batch_size 8 \
-    --per_gpu_batch_size 2 \
+    --per_gpu_batch_size 1 \
     --eval_freq 2000 \
     --total_steps ${ES} \
     --retriever_total_steps ${ES} \
