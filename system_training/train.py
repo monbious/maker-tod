@@ -18,8 +18,16 @@ import src.ranker_model
 
 
 
-def retriever_embedding_db(model, dataloader):
+def retriever_embedding_db(model, dataloader, live=False):
     """embedding all db text"""
+    if live:
+        all_db_ids, all_db_mask, all_db_token_type, _ = get_all_dbs_inputs(dataloader)
+        all_embeddings = model(input_ids=all_db_ids.long().cuda(), attention_mask=all_db_mask.long().cuda(),
+                           token_type_ids=all_db_token_type.long().cuda(), output_hidden_states=True,
+                           return_dict=True,
+                           sent_emb=True).pooler_output
+        return all_embeddings.cpu()
+
     model.eval()
     all_embeddings = []
     with torch.no_grad():
@@ -166,6 +174,15 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
 
                 retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_refer_embeddings.detach().cpu(),
                                                         retriever_all_dbs_embeddings)  # (bs, all_db_num)
+
+                retriever_all_dbs_props = torch.softmax(retriever_all_dbs_scores, dim=-1)
+                retriever_all_dbs_embeddings_skip = retriever_embedding_db(retriever_model,
+                                                                      retriever_db_dataloader, live=True)
+                retriever_all_one_embeddings = retriever_all_dbs_props.expand_as(retriever_all_dbs_embeddings_skip).mul(retriever_all_dbs_embeddings_skip).sum(0)
+                retriever_refer_embeddings = retriever_refer_embeddings + retriever_all_one_embeddings
+                retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_refer_embeddings.detach().cpu(),
+                                                        retriever_all_dbs_embeddings)  # (bs, all_db_num)
+
                 retriever_top_k_dbs_index = retriever_all_dbs_scores.sort(-1, True)[1][:, :opt.top_k_dbs].unsqueeze(2)  # (bs, top_k, 1)
             else:
                 if opt.use_retriever_for_gt is False:
@@ -194,6 +211,16 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
 
                     retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_refer_embeddings.detach().cpu(),
                                                             retriever_all_dbs_embeddings)  # (bs, all_db_num)
+
+                    retriever_all_dbs_props = torch.softmax(retriever_all_dbs_scores, dim=-1)
+                    retriever_all_dbs_embeddings_skip = retriever_embedding_db(retriever_model,
+                                                                               retriever_db_dataloader, live=True)
+                    retriever_all_one_embeddings = retriever_all_dbs_props.expand_as(
+                        retriever_all_dbs_embeddings_skip).mul(retriever_all_dbs_embeddings_skip).sum(0)
+                    retriever_refer_embeddings = retriever_refer_embeddings + retriever_all_one_embeddings
+                    retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_refer_embeddings.detach().cpu(),
+                                                            retriever_all_dbs_embeddings)  # (bs, all_db_num)
+
                     retriever_gt_dbs_scores = torch.gather(retriever_all_dbs_scores, 1,
                                                            gt_db_idx.long())  # (bs, gt_db_num)
                     retriever_top_k_dbs_index = retriever_gt_dbs_scores.sort(-1, True)[1][:, :opt.top_k_dbs]  # (bs, top_k)
@@ -245,7 +272,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     output_hidden_states=True,
                     return_dict=True,
                     sent_emb=True).pooler_output.view(bsz, opt.top_k_dbs, -1)  # have grad
-                retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_context_embeddings.unsqueeze(1),
+                retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_refer_embeddings.unsqueeze(1),
                                                           retriever_top_k_dbs_embeddings).squeeze(1)  # (bs, top_k)
             else:
                 if opt.use_retriever_for_gt is False:
@@ -268,7 +295,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                         output_hidden_states=True,
                         return_dict=True,
                         sent_emb=True).pooler_output.view(bsz, opt.top_k_dbs, -1)  # have grad
-                    retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_context_embeddings.unsqueeze(1),
+                    retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_refer_embeddings.unsqueeze(1),
                                                               retriever_top_k_dbs_embeddings).squeeze(1)  # (bs, top_k)
             if opt.use_ranker is True:  # step operations is inside
                 ranker_outputs = ranker_model(
@@ -350,12 +377,12 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                                                  dial_collator, generator_tokenizer, opt, retriever_all_dbs_embeddings,
                                                  generator_all_dbs_ids, generator_all_dbs_mask, ranker_all_dbs_ids,
                                                  ranker_all_dbs_mask, ranker_all_dbs_token_type, step,
-                                                 generator_db_collator, refer_model)
+                                                 generator_db_collator, refer_model, retriever_db_dataloader)
                 test_score, test_metric = evaluate(generator_model, retriever_model, ranker_model, test_dial_dataset,
                                                    dial_collator, generator_tokenizer, opt, retriever_all_dbs_embeddings,
                                                    generator_all_dbs_ids, generator_all_dbs_mask, ranker_all_dbs_ids,
                                                    ranker_all_dbs_mask, ranker_all_dbs_token_type, step,
-                                                   generator_db_collator, refer_model)
+                                                   generator_db_collator, refer_model, retriever_db_dataloader)
                 if opt.is_main:
                     logger.warning("Continue training")
                 generator_model.train()
@@ -424,7 +451,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
 
 def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, dial_collator, generator_tokenizer, opt,
              retriever_all_dbs_embeddings, generator_all_dbs_ids, generator_all_dbs_mask, ranker_all_dbs_ids,
-             ranker_all_dbs_mask, ranker_all_dbs_token_type, step, generator_db_collator, refer_model):
+             ranker_all_dbs_mask, ranker_all_dbs_token_type, step, generator_db_collator, refer_model, retriever_db_dataloader):
     sampler = SequentialSampler(eval_dial_dataset)
     eval_dial_dataloader = DataLoader(eval_dial_dataset,
                                       sampler=sampler,
@@ -473,6 +500,16 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
 
                 retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_refer_embeddings.detach().cpu(),
                                                         retriever_all_dbs_embeddings)  # (bs, all_db_num)
+
+                retriever_all_dbs_props = torch.softmax(retriever_all_dbs_scores, dim=-1)
+                retriever_all_dbs_embeddings_skip = retriever_embedding_db(retriever_model,
+                                                                           retriever_db_dataloader, live=True)
+                retriever_all_one_embeddings = retriever_all_dbs_props.expand_as(
+                    retriever_all_dbs_embeddings_skip).mul(retriever_all_dbs_embeddings_skip).sum(0)
+                retriever_refer_embeddings = retriever_refer_embeddings + retriever_all_one_embeddings
+                retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_refer_embeddings.detach().cpu(),
+                                                        retriever_all_dbs_embeddings)  # (bs, all_db_num)
+
                 retriever_top_k_dbs_index = retriever_all_dbs_scores.sort(-1, True)[1][:, :opt.top_k_dbs].unsqueeze(2)  # (bs, top_k, 1)
             else:
                 if opt.use_retriever_for_gt is False:
@@ -506,6 +543,16 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
 
                     retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_refer_embeddings.detach().cpu(),
                                                             retriever_all_dbs_embeddings)  # (bs, all_db_num)
+
+                    retriever_all_dbs_props = torch.softmax(retriever_all_dbs_scores, dim=-1)
+                    retriever_all_dbs_embeddings_skip = retriever_embedding_db(retriever_model,
+                                                                               retriever_db_dataloader, live=True)
+                    retriever_all_one_embeddings = retriever_all_dbs_props.expand_as(
+                        retriever_all_dbs_embeddings_skip).mul(retriever_all_dbs_embeddings_skip).sum(0)
+                    retriever_refer_embeddings = retriever_refer_embeddings + retriever_all_one_embeddings
+                    retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_refer_embeddings.detach().cpu(),
+                                                            retriever_all_dbs_embeddings)  # (bs, all_db_num)
+
                     retriever_gt_dbs_scores = torch.gather(retriever_all_dbs_scores, 1,
                                                            gt_db_idx.long())  # (bs, gt_db_num)
                     retriever_top_k_dbs_index = retriever_gt_dbs_scores.sort(-1, True)[1][:, :opt.top_k_dbs]  # (bs, top_k)
