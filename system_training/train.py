@@ -407,7 +407,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     curr_loss = 0.
 
                 if not opt.use_gt_dbs or (opt.use_gt_dbs and opt.use_retriever_for_gt):
-                    refer_scheduler.step(dev_score)
+                    refer_scheduler.step(test_score)
 
             if opt.is_main and (step - 1) % opt.save_freq == 0 and step > opt.start_eval_step:
                 src.util.save(generator_model, generator_optimizer, generator_scheduler, step, best_dev_score,
