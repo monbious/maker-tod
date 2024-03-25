@@ -170,7 +170,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                 retriever_all_dbs_props = torch.softmax(retriever_all_dbs_scores, dim=-1)
                 retriever_all_dbs_embeddings_skip = retriever_embedding_db(retriever_model,
                                                                       retriever_db_dataloader, live=True)
-                retriever_all_one_embeddings = retriever_all_dbs_props.expand_as(retriever_all_dbs_embeddings_skip).mul(retriever_all_dbs_embeddings_skip).sum(0)
+                retriever_all_one_embeddings = retriever_all_dbs_props.unsqueeze(-1).expand_as(retriever_all_dbs_embeddings_skip).mul(retriever_all_dbs_embeddings_skip).sum(1)
                 retriever_refer_embeddings = retriever_refer_embeddings + retriever_all_one_embeddings
                 retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_refer_embeddings.detach().cpu(),
                                                         retriever_all_dbs_embeddings)  # (bs, all_db_num)
@@ -207,8 +207,8 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     retriever_all_dbs_props = torch.softmax(retriever_all_dbs_scores, dim=-1)
                     retriever_all_dbs_embeddings_skip = retriever_embedding_db(retriever_model,
                                                                                retriever_db_dataloader, live=True)
-                    retriever_all_one_embeddings = retriever_all_dbs_props.expand_as(
-                        retriever_all_dbs_embeddings_skip).mul(retriever_all_dbs_embeddings_skip).sum(0)
+                    retriever_all_one_embeddings = retriever_all_dbs_props.unsqueeze(-1).expand_as(
+                        retriever_all_dbs_embeddings_skip).mul(retriever_all_dbs_embeddings_skip).sum(1)
                     retriever_refer_embeddings = retriever_refer_embeddings + retriever_all_one_embeddings
                     retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_refer_embeddings.detach().cpu(),
                                                             retriever_all_dbs_embeddings)  # (bs, all_db_num)
@@ -496,8 +496,8 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
                 retriever_all_dbs_props = torch.softmax(retriever_all_dbs_scores, dim=-1)
                 retriever_all_dbs_embeddings_skip = retriever_embedding_db(retriever_model,
                                                                            retriever_db_dataloader, live=True)
-                retriever_all_one_embeddings = retriever_all_dbs_props.expand_as(
-                    retriever_all_dbs_embeddings_skip).mul(retriever_all_dbs_embeddings_skip).sum(0)
+                retriever_all_one_embeddings = retriever_all_dbs_props.unsqueeze(-1).expand_as(
+                    retriever_all_dbs_embeddings_skip).mul(retriever_all_dbs_embeddings_skip).sum(1)
                 retriever_refer_embeddings = retriever_refer_embeddings + retriever_all_one_embeddings
                 retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_refer_embeddings.detach().cpu(),
                                                         retriever_all_dbs_embeddings)  # (bs, all_db_num)
@@ -539,8 +539,8 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
                     retriever_all_dbs_props = torch.softmax(retriever_all_dbs_scores, dim=-1)
                     retriever_all_dbs_embeddings_skip = retriever_embedding_db(retriever_model,
                                                                                retriever_db_dataloader, live=True)
-                    retriever_all_one_embeddings = retriever_all_dbs_props.expand_as(
-                        retriever_all_dbs_embeddings_skip).mul(retriever_all_dbs_embeddings_skip).sum(0)
+                    retriever_all_one_embeddings = retriever_all_dbs_props.unsqueeze(-1).expand_as(
+                        retriever_all_dbs_embeddings_skip).mul(retriever_all_dbs_embeddings_skip).sum(1)
                     retriever_refer_embeddings = retriever_refer_embeddings + retriever_all_one_embeddings
                     retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_refer_embeddings.detach().cpu(),
                                                             retriever_all_dbs_embeddings)  # (bs, all_db_num)
