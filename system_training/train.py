@@ -20,17 +20,6 @@ import src.ranker_model
 
 def retriever_embedding_db(model, dataloader, live=False):
     """embedding all db text"""
-    if live:
-        all_embeddings = []
-        for k, (index, text_ids, text_mask, text_token_type, attr_mask) in enumerate(dataloader):
-            embeddings = model(input_ids=text_ids.long().cuda(), attention_mask=text_mask.long().cuda(),
-                               token_type_ids=text_token_type.long().cuda(), output_hidden_states=True,
-                               return_dict=True,
-                               sent_emb=True).pooler_output
-            all_embeddings.append(embeddings.cpu())
-        all_embeddings = torch.cat(all_embeddings, dim=0)  # (all_db_num, hidden_size)
-        return all_embeddings
-
     model.eval()
     all_embeddings = []
     with torch.no_grad():
