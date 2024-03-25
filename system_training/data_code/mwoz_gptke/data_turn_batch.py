@@ -106,7 +106,7 @@ class DialDataset(torch.utils.data.Dataset):
         dial_kbs = example["kb"]
         dial_kb_set = set(list(reduce(lambda a, b: a + b, [list(kb_dict.values()) for kb_dict in dial_kbs])) + example["gold_entities"])
         context_splits = context.split(' ')
-        ent_mark = [2 if word not in dial_kb_set else 1 for word in context_splits]
+        ent_mark = [0 if word not in dial_kb_set else 1 for word in context_splits]
         return_dict['ent_mark'] = ent_mark
         return_dict['seq_len'] = len(context_splits)
 
@@ -223,7 +223,7 @@ class DialCollator(object):
         else:
             times_matrix = None
 
-        ent_mark = torch.tensor([ex["ent_mark"] + [0] * (self.retriever_text_maxlength - len(ex["ent_mark"])) if len(ex["ent_mark"]) < self.retriever_text_maxlength else ex["ent_mark"][:self.retriever_text_maxlength] for ex in batch])
+        ent_mark = torch.tensor([ex["ent_mark"] + [0] * (self.retriever_text_maxlength - len(ex["ent_mark"])) if len(ex["ent_mark"]) < self.retriever_text_maxlength else ex["ent_mark"][-self.retriever_text_maxlength:] for ex in batch])
         seq_lens = [ex["seq_len"] if ex["seq_len"] < self.retriever_text_maxlength else self.retriever_text_maxlength for ex in batch]
 
         return index, resp_ori_input_ids, resp_ori_mask, generator_context_input_ids, generator_context_mask, \
