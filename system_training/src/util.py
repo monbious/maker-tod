@@ -168,6 +168,23 @@ def set_retriever_optim(opt, model):
     return optimizer, scheduler
 
 
+def set_db_optim(opt, model):
+    if opt.retriever_optim == 'adam':
+        optimizer = torch.optim.Adam(model.parameters(), lr=opt.retriever_lr)
+    elif opt.retriever_optim == 'adamw':
+        optimizer = torch.optim.AdamW(model.parameters(), lr=opt.retriever_lr, weight_decay=opt.retriever_weight_decay)
+    if opt.retriever_scheduler == 'fixed':
+        scheduler = FixedScheduler(optimizer)
+    elif opt.retriever_scheduler == 'linear':
+        if opt.retriever_scheduler_steps is None:
+            scheduler_steps = opt.retriever_total_steps
+        else:
+            scheduler_steps = opt.retriever_scheduler_steps
+        scheduler = WarmupLinearScheduler(optimizer, warmup_steps=opt.retriever_warmup_steps, scheduler_steps=scheduler_steps,
+                                          min_ratio=0.1, fixed_lr=opt.retriever_fixed_lr)
+    return optimizer, scheduler
+
+
 def set_reference_optim(opt, model):
     if opt.reference_optim == 'adam':
         optimizer = torch.optim.Adam(model.parameters(), lr=opt.reference_lr)

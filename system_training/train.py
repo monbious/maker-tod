@@ -34,6 +34,19 @@ def retriever_embedding_db(model, dataloader):
     return all_embeddings
 
 
+def retriever_embedding_db_refer(model, dataloader):
+    """embedding all db text"""
+    all_embeddings = []
+    for k, (index, text_ids, text_mask, text_token_type, attr_mask) in enumerate(dataloader):
+        embeddings = model(input_ids=text_ids.long().cuda(), attention_mask=text_mask.long().cuda(),
+                           token_type_ids=text_token_type.long().cuda(), output_hidden_states=True,
+                           return_dict=True,
+                           sent_emb=True).pooler_output
+        all_embeddings.append(embeddings.cpu())
+    all_embeddings = torch.cat(all_embeddings, dim=0)  # (all_db_num, hidden_size)
+    return all_embeddings
+
+
 def get_all_dbs_inputs(db_dataloader):
     all_db_ids = []
     all_db_mask = []
@@ -79,7 +92,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
           generator_optimizer, generator_scheduler, retriever_optimizer, retriever_scheduler, ranker_optimizer,
           ranker_scheduler, step, train_dial_dataset, eval_dial_dataset, test_dial_dataset, dial_collator, db_dataset,
           generator_db_collator, retriever_db_collator, ranker_db_collator, opt, best_dev_score, checkpoint_path,
-          refer_model, refer_optimizer, refer_scheduler):
+          refer_model, refer_optimizer, refer_scheduler, db_model, db_tokenizer, db_optimizer, db_scheduler):
     if opt.is_main:
         try:
             tb_logger = torch.utils.tensorboard.SummaryWriter(Path(opt.checkpoint_dir) / opt.name)
@@ -124,6 +137,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
     epoch = 0
     generator_model.train()
     retriever_model.train()
+    db_model.train()
     ranker_model.train()
     refer_model.train()
     training_steps = min(opt.total_steps, opt.end_eval_step)
@@ -134,10 +148,14 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
             if opt.use_gt_dbs is False and (step - 1) % opt.db_emb_update_steps == 0:
                 retriever_all_dbs_embeddings = retriever_embedding_db(retriever_model,
                                                                       retriever_db_dataloader)  # no grad
+                retriever_all_dbs_embeddings_refer = retriever_embedding_db_refer(db_model,
+                                                                      retriever_db_dataloader)
             elif opt.use_gt_dbs is True:
                 if opt.use_retriever_for_gt is True and (step - 1) % opt.db_emb_update_steps == 0:
                     retriever_all_dbs_embeddings = retriever_embedding_db(retriever_model,
                                                                           retriever_db_dataloader)  # no grad
+                    retriever_all_dbs_embeddings_refer = retriever_embedding_db_refer(db_model,
+                                                                                      retriever_db_dataloader)
                 elif opt.use_retriever_for_gt is False:
                     retriever_all_dbs_embeddings = None
             (index, resp_ori_input_ids, resp_ori_mask, generator_context_input_ids, generator_context_mask,
@@ -165,6 +183,12 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                 retriever_refer_embeddings = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(),
                                                          retriver_ent_emb)
                 retriever_context_embeddings = retriever_context_embeddings + retriever_refer_embeddings
+
+                retriever_all_dbs_props = torch.softmax(torch.einsum("bd,nd->bn", retriever_context_embeddings,
+                                                        retriever_all_dbs_embeddings_refer), -1)
+                retri_all_db_emb_add = torch.matmul(retriever_all_dbs_props, retriever_all_dbs_embeddings_refer)
+                retriever_context_embeddings = retriever_context_embeddings + retri_all_db_emb_add
+
 
                 retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
                                                         retriever_all_dbs_embeddings)  # (bs, all_db_num)
@@ -194,6 +218,11 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     retriever_refer_embeddings = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(),
                                                              retriver_ent_emb)
                     retriever_context_embeddings = retriever_context_embeddings + retriever_refer_embeddings
+
+                    retriever_all_dbs_props = torch.softmax(torch.einsum("bd,nd->bn", retriever_context_embeddings,
+                                                                         retriever_all_dbs_embeddings_refer), -1)
+                    retri_all_db_emb_add = torch.matmul(retriever_all_dbs_props, retriever_all_dbs_embeddings_refer)
+                    retriever_context_embeddings = retriever_context_embeddings + retri_all_db_emb_add
 
                     retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
                                                             retriever_all_dbs_embeddings)  # (bs, all_db_num)
@@ -325,11 +354,17 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                 generator_optimizer.step()
                 generator_scheduler.step()
                 generator_model.zero_grad()
+
                 if retriever_loss is not None:
                     torch.nn.utils.clip_grad_norm_(retriever_model.parameters(), opt.clip)
                     retriever_optimizer.step()
                     retriever_scheduler.step()
                     retriever_model.zero_grad()
+
+                    torch.nn.utils.clip_grad_norm_(db_model.parameters(), opt.clip)
+                    db_optimizer.step()
+                    db_scheduler.step()
+                    db_model.zero_grad()
 
                 if not opt.use_gt_dbs or (opt.use_gt_dbs and opt.use_retriever_for_gt):
                     torch.nn.utils.clip_grad_norm_(refer_model.parameters(), opt.clip)
@@ -353,16 +388,19 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                                                  dial_collator, generator_tokenizer, opt, retriever_all_dbs_embeddings,
                                                  generator_all_dbs_ids, generator_all_dbs_mask, ranker_all_dbs_ids,
                                                  ranker_all_dbs_mask, ranker_all_dbs_token_type, step,
-                                                 generator_db_collator, refer_model)
+                                                 generator_db_collator, refer_model, retriever_all_dbs_embeddings_refer,
+                                                 db_model)
                 test_score, test_metric = evaluate(generator_model, retriever_model, ranker_model, test_dial_dataset,
                                                    dial_collator, generator_tokenizer, opt, retriever_all_dbs_embeddings,
                                                    generator_all_dbs_ids, generator_all_dbs_mask, ranker_all_dbs_ids,
                                                    ranker_all_dbs_mask, ranker_all_dbs_token_type, step,
-                                                   generator_db_collator, refer_model)
+                                                   generator_db_collator, refer_model, retriever_all_dbs_embeddings_refer,
+                                                   db_model)
                 if opt.is_main:
                     logger.warning("Continue training")
                 generator_model.train()
                 retriever_model.train()
+                db_model.train()
                 ranker_model.train()
                 refer_model.train()
                 if opt.is_main:
@@ -372,6 +410,8 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                                       opt, checkpoint_path, 'generator_best_dev')
                         src.util.save(retriever_model, retriever_optimizer, retriever_scheduler, step, best_dev_score,
                                       opt, checkpoint_path, 'retriever_best_dev')
+                        src.util.save(db_model, db_optimizer, db_scheduler, step, best_dev_score,
+                                      opt, checkpoint_path, 'db_best_dev')
                         src.util.save(ranker_model, ranker_optimizer, ranker_scheduler, step, best_dev_score,
                                       opt, checkpoint_path, 'ranker_best_dev')
                         src.util.save(refer_model, refer_optimizer, refer_scheduler, step, best_dev_score,
@@ -395,7 +435,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     log += f" glr: {generator_scheduler.get_last_lr()[0]:.5f}"
                     log += f" rlr: {retriever_scheduler.get_last_lr()[0]:.5f}"
                     log += f" klr: {ranker_scheduler.get_last_lr()[0]:.5f}"
-                    # log += f" flr: {refer_scheduler.get_last_lr()[0]:.5f}"
+                    log += f" dlr: {db_scheduler.get_last_lr()[0]:.5f}"
                     log += f" flr: {refer_optimizer.param_groups[-1]['lr']:.5f}"
                     logger.warning(log)
                     if tb_logger is not None:
@@ -414,6 +454,8 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                               opt, checkpoint_path, f"generator_step-{step}")
                 src.util.save(retriever_model, retriever_optimizer, retriever_scheduler, step, best_dev_score,
                               opt, checkpoint_path, f"retriever_step-{step}")
+                src.util.save(db_model, db_optimizer, db_scheduler, step, best_dev_score,
+                              opt, checkpoint_path, f"db_step-{step}")
                 src.util.save(ranker_model, ranker_optimizer, ranker_scheduler, step, best_dev_score,
                               opt, checkpoint_path, f"ranker_step-{step}")
                 src.util.save(refer_model, refer_optimizer, refer_scheduler, step, best_dev_score,
@@ -427,7 +469,8 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
 
 def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, dial_collator, generator_tokenizer, opt,
              retriever_all_dbs_embeddings, generator_all_dbs_ids, generator_all_dbs_mask, ranker_all_dbs_ids,
-             ranker_all_dbs_mask, ranker_all_dbs_token_type, step, generator_db_collator, refer_model):
+             ranker_all_dbs_mask, ranker_all_dbs_token_type, step, generator_db_collator, refer_model,
+             retriever_all_dbs_embeddings_refer, db_model):
     sampler = SequentialSampler(eval_dial_dataset)
     eval_dial_dataloader = DataLoader(eval_dial_dataset,
                                       sampler=sampler,
@@ -440,11 +483,13 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
     retriever_model.eval()
     ranker_model.eval()
     refer_model.eval()
+    db_model.eval()
     results = []
     retrieve_results = []
     raw_data = []
     generator_model = generator_model.module if hasattr(generator_model, "module") else generator_model
     retriever_model = retriever_model.module if hasattr(retriever_model, "module") else retriever_model
+    db_model = db_model.module if hasattr(db_model, "module") else db_model
     ranker_model = ranker_model.module if hasattr(ranker_model, "module") else ranker_model
     refer_model = refer_model.module if hasattr(refer_model, "module") else refer_model
     with torch.no_grad():
@@ -473,6 +518,11 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
 
                 retriever_refer_embeddings = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(), retriver_ent_emb)
                 retriever_context_embeddings = retriever_context_embeddings + retriever_refer_embeddings
+
+                retriever_all_dbs_props = torch.softmax(torch.einsum("bd,nd->bn", retriever_context_embeddings,
+                                                                     retriever_all_dbs_embeddings_refer), -1)
+                retri_all_db_emb_add = torch.matmul(retriever_all_dbs_props, retriever_all_dbs_embeddings_refer)
+                retriever_context_embeddings = retriever_context_embeddings + retri_all_db_emb_add
 
                 retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
                                                         retriever_all_dbs_embeddings)  # (bs, all_db_num)
@@ -507,6 +557,11 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
                     retriever_refer_embeddings = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(),
                                                              retriver_ent_emb)
                     retriever_context_embeddings = retriever_context_embeddings + retriever_refer_embeddings
+
+                    retriever_all_dbs_props = torch.softmax(torch.einsum("bd,nd->bn", retriever_context_embeddings,
+                                                                         retriever_all_dbs_embeddings_refer), -1)
+                    retri_all_db_emb_add = torch.matmul(retriever_all_dbs_props, retriever_all_dbs_embeddings_refer)
+                    retriever_context_embeddings = retriever_context_embeddings + retri_all_db_emb_add
 
                     retriever_all_dbs_scores = torch.einsum("bd,nd->bn", retriever_context_embeddings.detach().cpu(),
                                                             retriever_all_dbs_embeddings)  # (bs, all_db_num)
@@ -658,6 +713,13 @@ def run(opt, checkpoint_path):
     retriever_model = retriever_model_class.from_pretrained(retriever_model_name)  # dont need to add token
     retriever_model = retriever_model.to(opt.local_rank)
     retriever_optimizer, retriever_scheduler = src.util.set_retriever_optim(opt, retriever_model)
+    # db model
+    db_model_name = opt.retriever_model_name
+    db_model_class = src.simcse_model.BertForCL
+    db_tokenizer = transformers.BertTokenizer.from_pretrained(db_model_name)
+    db_model = db_model_class.from_pretrained(db_model_name)  # dont need to add token
+    db_model = db_model.to(opt.local_rank)
+    db_optimizer, db_scheduler = src.util.set_db_optim(opt, db_model)
     # ranker model
     ranker_model_name = "bert-base-uncased"
     ranker_model_class = src.ranker_model.BertForRank
@@ -682,6 +744,12 @@ def run(opt, checkpoint_path):
         )
         retriever_model = torch.nn.parallel.DistributedDataParallel(
             retriever_model,
+            device_ids=[opt.local_rank],
+            output_device=opt.local_rank,
+            find_unused_parameters=False,
+        )
+        db_model = torch.nn.parallel.DistributedDataParallel(
+            db_model,
             device_ids=[opt.local_rank],
             output_device=opt.local_rank,
             find_unused_parameters=False,
@@ -772,7 +840,11 @@ def run(opt, checkpoint_path):
         checkpoint_path,
         refer_model,
         refer_optimizer,
-        refer_scheduler
+        refer_scheduler,
+        db_model,
+        db_tokenizer,
+        db_optimizer,
+        db_scheduler
     )
 
 
