@@ -27,13 +27,13 @@ python train.py \
     --ranker_times_matrix_loss_type bce \
     --ranker_times_matrix_query cr \
     --generator_distill_retriever False \
-    --generator_distill_retriever_start_step 200 \
+    --generator_distill_retriever_start_step 20000 \
     --use_delex True \
     --use_dk True \
     --dk_mask True \
     --use_checkpoint \
     --per_gpu_eval_batch_size 8 \
-    --per_gpu_batch_size 1 \
+    --per_gpu_batch_size 2 \
     --eval_freq 2000 \
     --total_steps ${ES} \
     --retriever_total_steps ${ES} \
