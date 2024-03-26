@@ -107,7 +107,6 @@ class DialDataset(torch.utils.data.Dataset):
         dial_kb_set = set(list(reduce(lambda a, b: a + b, [list(kb_dict.values()) for kb_dict in dial_kbs])) + example["gold_entities"])
         context_splits = context.split()
         dial_kb_list = list(reduce(lambda a, b: a + b, [value_item.split('_') for value_item in dial_kb_set]))
-        print('==>', dial_kb_list)
         ent_mark = [0 if word not in dial_kb_list else 1 for word in context_splits]
         return_dict['ent_mark'] = ent_mark
         return_dict['seq_len'] = len(context_splits)
