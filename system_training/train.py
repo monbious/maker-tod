@@ -36,14 +36,17 @@ def retriever_embedding_db(model, dataloader):
 
 def retriever_embedding_db_refer(model, dataloader):
     """embedding all db text"""
+    model.eval()
     all_embeddings = []
-    for k, (index, text_ids, text_mask, text_token_type, attr_mask) in enumerate(dataloader):
-        embeddings = model(input_ids=text_ids.long().cuda(), attention_mask=text_mask.long().cuda(),
-                           token_type_ids=text_token_type.long().cuda(), output_hidden_states=True,
-                           return_dict=True,
-                           sent_emb=True).pooler_output
-        all_embeddings.append(embeddings)
-    all_embeddings = torch.cat(all_embeddings, dim=0)  # (all_db_num, hidden_size)
+    with torch.no_grad():
+        for k, (index, text_ids, text_mask, text_token_type, attr_mask) in enumerate(dataloader):
+            embeddings = model(input_ids=text_ids.long().cuda(), attention_mask=text_mask.long().cuda(),
+                               token_type_ids=text_token_type.long().cuda(), output_hidden_states=True,
+                               return_dict=True,
+                               sent_emb=True).pooler_output
+            all_embeddings.append(embeddings)
+        all_embeddings = torch.cat(all_embeddings, dim=0)  # (all_db_num, hidden_size)
+    model.train()
     return all_embeddings
 
 
