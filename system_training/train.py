@@ -42,7 +42,7 @@ def retriever_embedding_db_refer(model, dataloader):
                            token_type_ids=text_token_type.long().cuda(), output_hidden_states=True,
                            return_dict=True,
                            sent_emb=True).pooler_output
-        all_embeddings.append(embeddings.cpu())
+        all_embeddings.append(embeddings)
     all_embeddings = torch.cat(all_embeddings, dim=0)  # (all_db_num, hidden_size)
     return all_embeddings
 
