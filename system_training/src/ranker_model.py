@@ -11,13 +11,19 @@ class RankerHead(nn.Module):
 
     def __init__(self, config, output_dim=12):
         super().__init__()
+        self.fuse = nn.Linear(2*config.hidden_size, config.hidden_size)
         self.dense = nn.Linear(config.hidden_size, config.hidden_size)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.out_proj = nn.Linear(config.hidden_size, output_dim)
 
-    def forward(self, x, **kwargs):
+    def forward(self, x, retri_ent_embs, **kwargs):
         x = self.dropout(x)
-        x = self.dense(x)
+        if retri_ent_embs is not None:
+            expanded_ent_embs = retri_ent_embs.unsqueeze(1).expand_as(x)
+            concat_embs = torch.cat([x, expanded_ent_embs], dim=-1)
+            x = self.fuse(concat_embs)
+        else:
+            x = self.dense(x)
         x = torch.tanh(x)
         x = self.dropout(x)
         x = self.out_proj(x)
@@ -61,6 +67,7 @@ class BertForRank(transformers.BertPreTrainedModel):
             generator_db_id=None,
             generator_input_ids=None,
             generator_attention_mask=None,
+            retri_ent_embs = None,
             **kwargs
     ):
         if input_ids is not None:
@@ -97,8 +104,7 @@ class BertForRank(transformers.BertPreTrainedModel):
             ranker_scores = ranker_scores[:, :, self.model_args.ranker_text_maxlength:, :].masked_fill(~ranker_attention_mask, 0.).sum(dim=2) / ranker_attention_mask.sum(dim=2)  # (bs, db_num, hidden_size)
         else:
             raise ValueError
-        print('===>', ranker_scores.shape)
-        ranker_scores = self.ranker_head(ranker_scores)  # (bs, db_num, num_attribute)
+        ranker_scores = self.ranker_head(ranker_scores, retri_ent_embs)  # (bs, db_num, num_attribute)
         if retriever_top_k_dbs_scores is not None and self.model_args.rank_no_retriever_weighted is False:
             top_k_weight = F.softmax(retriever_top_k_dbs_scores, dim=-1).unsqueeze(2)  # (bs, db_num, 1)
             ranker_scores = (ranker_scores * top_k_weight).sum(dim=1)  # (bs, num_attribute)
