@@ -27,7 +27,7 @@ class SelfAttention(nn.Module):
         if ent_mask is not None:
             for ii in range(scores.size(0)):
                 if 1 in ent_mask[ii]:
-                    scores[ii].masked_fill((ent_mask[ii] == 2), -np.inf)
+                    scores[ii].masked_fill((ent_mask[ii] == 0), -np.inf)
         scores = F.softmax(scores, dim=1)
         context = scores.unsqueeze(2).expand_as(inp).mul(inp).sum(1)
         return context
