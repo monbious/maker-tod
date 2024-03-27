@@ -11,7 +11,9 @@ class RankerHead(nn.Module):
 
     def __init__(self, config, output_dim=12):
         super().__init__()
-        self.fuse = nn.Linear(2*config.hidden_size, config.hidden_size)
+        self.dense4fuse = nn.Linear(config.hidden_size, 128)
+        self.fuse = nn.Linear(2*128, output_dim)
+
         self.dense = nn.Linear(config.hidden_size, config.hidden_size)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.out_proj = nn.Linear(config.hidden_size, output_dim)
@@ -19,14 +21,16 @@ class RankerHead(nn.Module):
     def forward(self, x, retri_ent_embs, **kwargs):
         x = self.dropout(x)
         if retri_ent_embs is not None:
+            x = self.dense4fuse(x)
+            x = torch.tanh(x)
             expanded_ent_embs = retri_ent_embs.unsqueeze(1).expand_as(x)
             concat_embs = torch.cat([x, expanded_ent_embs], dim=-1)
             x = self.fuse(concat_embs)
         else:
             x = self.dense(x)
-        x = torch.tanh(x)
-        x = self.dropout(x)
-        x = self.out_proj(x)
+            x = torch.tanh(x)
+            x = self.dropout(x)
+            x = self.out_proj(x)
         return x
 
 
