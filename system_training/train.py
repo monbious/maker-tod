@@ -160,12 +160,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                                                         retriever_all_dbs_embeddings)  # (bs, all_db_num)
                 retriever_top_k_dbs_index = retriever_all_dbs_scores.sort(-1, True)[1][:, :opt.top_k_dbs].unsqueeze(2)  # (bs, top_k, 1)
 
-                retriver_ent_embs = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
-                                                  attention_mask=ent_mark.bool().long().cuda(),
-                                                  token_type_ids=retriever_context_token_type.long().cuda(),
-                                                  output_hidden_states=True,
-                                                  return_dict=True,
-                                                  sent_emb=True).pooler_output  # have grad
+                retriver_ent_embs = refer_model.extract_ent_embs(retriever_context_output, seq_lens, ent_mark.long().cuda())
             else:
                 if opt.use_retriever_for_gt is False:
                     retriever_top_k_dbs_index = gt_db_idx[:, :opt.top_k_dbs].unsqueeze(2)  # (bs, top_k, 1)
@@ -191,12 +186,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     retriever_top_k_dbs_index = retriever_gt_dbs_scores.sort(-1, True)[1][:, :opt.top_k_dbs]  # (bs, top_k)
                     retriever_top_k_dbs_index = torch.gather(gt_db_idx, 1, retriever_top_k_dbs_index.long()).unsqueeze(2)  # (bs, top_k, 1)
 
-                    retriver_ent_embs = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
-                                                        attention_mask=ent_mark.bool().long().cuda(),
-                                                        token_type_ids=retriever_context_token_type.long().cuda(),
-                                                        output_hidden_states=True,
-                                                        return_dict=True,
-                                                        sent_emb=True).pooler_output  # have grad
+                    retriver_ent_embs = refer_model.extract_ent_embs(retriever_context_output, seq_lens, ent_mark.long().cuda())
 
 
             # get top-k db generator inputs and concat with context inputs and forward into generator model
@@ -466,12 +456,7 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
                                                         retriever_all_dbs_embeddings)  # (bs, all_db_num)
                 retriever_top_k_dbs_index = retriever_all_dbs_scores.sort(-1, True)[1][:, :opt.top_k_dbs].unsqueeze(2)  # (bs, top_k, 1)
 
-                retriver_ent_embs = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
-                                                    attention_mask=ent_mark.bool().long().cuda(),
-                                                    token_type_ids=retriever_context_token_type.long().cuda(),
-                                                    output_hidden_states=True,
-                                                    return_dict=True,
-                                                    sent_emb=True).pooler_output  # have grad
+                retriver_ent_embs = refer_model.extract_ent_embs(retriever_context_output, seq_lens, ent_mark.long().cuda())
             else:
                 if opt.use_retriever_for_gt is False:
                     retriever_top_k_dbs_index = gt_db_idx[:, :opt.top_k_dbs].unsqueeze(2)  # (bs, top_k, 1)
@@ -502,12 +487,7 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
                     retriever_top_k_dbs_index = retriever_gt_dbs_scores.sort(-1, True)[1][:, :opt.top_k_dbs]  # (bs, top_k)
                     retriever_top_k_dbs_index = torch.gather(gt_db_idx, 1, retriever_top_k_dbs_index.long()).unsqueeze(2)  # (bs, top_k, 1)
 
-                    retriver_ent_embs = retriever_model(input_ids=retriever_context_input_ids.long().cuda(),
-                                                        attention_mask=ent_mark.bool().long().cuda(),
-                                                        token_type_ids=retriever_context_token_type.long().cuda(),
-                                                        output_hidden_states=True,
-                                                        return_dict=True,
-                                                        sent_emb=True).pooler_output  # have grad
+                    retriver_ent_embs = refer_model.extract_ent_embs(retriever_context_output, seq_lens, ent_mark.long().cuda())
 
             # get top-k db generator inputs and concat with context inputs and forward into generator model
             bsz = retriever_top_k_dbs_index.size(0)
