@@ -186,7 +186,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     retriever_top_k_dbs_index = retriever_gt_dbs_scores.sort(-1, True)[1][:, :opt.top_k_dbs]  # (bs, top_k)
                     retriever_rest_dbs_index = retriever_gt_dbs_scores.sort(-1, True)[1][:, -opt.top_k_dbs:]  # (bs, top_k)
                     retriever_top_k_dbs_index = torch.gather(gt_db_idx, 1, retriever_top_k_dbs_index.long()).unsqueeze(2)  # (bs, top_k, 1)
-                    retriever_rest_dbs_index = torch.gather(gt_db_idx, 1, -retriever_rest_dbs_index.long()).unsqueeze(2)  # (bs, top_k, 1)
+                    retriever_rest_dbs_index = torch.gather(gt_db_idx, 1, retriever_rest_dbs_index.long()).unsqueeze(2)  # (bs, top_k, 1)
 
 
             # get top-k db generator inputs and concat with context inputs and forward into generator model
