@@ -128,9 +128,9 @@ class BertForRank(transformers.BertPreTrainedModel):
                     raise ValueError
             else:
                 raise ValueError
-            outputs += (ranker_times_loss,)
+            outputs += (ranker_times_loss, ranker_scores,)
         else:
-            outputs += (None,)
+            outputs += (None, None,)
         # ranker attribute score, get new attention mask
         if step > self.model_args.rank_attribute_start_step:
             if self.model_args.ranker_attribute_ways == "top_r":

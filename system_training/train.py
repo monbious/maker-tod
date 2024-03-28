@@ -288,7 +288,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     generator_input_ids=generator_context_top_k_dbs_input_ids.long().cuda(),
                     generator_attention_mask=generator_context_top_k_dbs_mask.cuda(),
                 )
-                ranker_times_loss, generator_context_top_k_dbs_top_r_attr_mask = ranker_outputs
+                ranker_times_loss, ranker_scores, generator_context_top_k_dbs_top_r_attr_mask = ranker_outputs
 
                 rest_ranker_outputs = ranker_model(
                     input_ids=ranker_context_rest_dbs_input_ids.long().cuda(),
@@ -303,7 +303,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     generator_attention_mask=generator_context_top_k_dbs_mask.cuda(),
                     is_rest=True,
                 )
-                rest_ranker_times_loss, _ = rest_ranker_outputs
+                rest_ranker_times_loss, rest_ranker_scores, _ = rest_ranker_outputs
             else:
                 ranker_times_loss, generator_context_top_k_dbs_top_r_attr_mask = None, generator_context_top_k_dbs_mask
                 rest_ranker_times_loss = None
@@ -334,6 +334,8 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                 train_loss = train_loss + opt.ranker_times_matrix_loss_alpha * ranker_times_loss
             if rest_ranker_times_loss is not None:
                 train_loss = train_loss + opt.ranker_times_matrix_loss_alpha * rest_ranker_times_loss
+            if ranker_scores is not None:
+                train_loss = train_loss + 1.5 * ranker_model.BinaryCrossEntropy(ranker_scores, rest_ranker_scores)
             if retriever_loss is not None:
                 train_loss = train_loss + opt.generator_distill_retriever_loss_alpha * retriever_loss
 
