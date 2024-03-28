@@ -565,7 +565,7 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
                     generator_input_ids=generator_context_top_k_dbs_input_ids.long().cuda(),
                     generator_attention_mask=generator_context_top_k_dbs_mask.cuda(),
                 )
-                ranker_times_loss, generator_context_top_k_dbs_top_r_attr_mask = ranker_outputs
+                ranker_times_loss, _, generator_context_top_k_dbs_top_r_attr_mask = ranker_outputs
             else:
                 ranker_times_loss, generator_context_top_k_dbs_top_r_attr_mask = None, generator_context_top_k_dbs_mask
 
