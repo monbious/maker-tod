@@ -61,6 +61,7 @@ class BertForRank(transformers.BertPreTrainedModel):
             generator_db_id=None,
             generator_input_ids=None,
             generator_attention_mask=None,
+            is_rest=False,
             **kwargs
     ):
         if input_ids is not None:
@@ -120,6 +121,8 @@ class BertForRank(transformers.BertPreTrainedModel):
             elif self.model_args.ranker_attribute_ways == "threshold":
                 if self.model_args.ranker_times_matrix_loss_type == "bce":
                     times_target = (times_matrix.float().mean(dim=1) > 0).float()  # (bs, num_attribute)
+                    if is_rest:
+                        times_target = torch.zeros_like(times_target)
                     ranker_times_loss = self.BinaryCrossEntropy(ranker_scores, times_target)
                 else:
                     raise ValueError
