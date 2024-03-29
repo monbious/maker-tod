@@ -1,3 +1,5 @@
+import multiprocessing
+
 import torch
 import transformers
 from pathlib import Path
@@ -15,6 +17,8 @@ import src.util
 import src.model
 import src.simcse_model
 import src.ranker_model
+
+cpu_core_nums = multiprocessing.cpu_count
 
 
 def retriever_embedding_db(model, dataloader):
@@ -93,7 +97,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
         sampler=train_dial_sampler,
         batch_size=opt.per_gpu_batch_size,
         drop_last=True,
-        num_workers=10,
+        num_workers=cpu_core_nums,
         collate_fn=dial_collator
     )
     db_sampler = SequentialSampler(db_dataset)
@@ -101,19 +105,19 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                                          sampler=db_sampler,
                                          batch_size=222,
                                          drop_last=False,
-                                         num_workers=10,
+                                         num_workers=cpu_core_nums,
                                          collate_fn=generator_db_collator)
     retriever_db_dataloader = DataLoader(db_dataset,
                                          sampler=db_sampler,
                                          batch_size=222,
                                          drop_last=False,
-                                         num_workers=10,
+                                         num_workers=cpu_core_nums,
                                          collate_fn=retriever_db_collator)
     ranker_db_dataloader = DataLoader(db_dataset,
                                       sampler=db_sampler,
                                       batch_size=222,
                                       drop_last=False,
-                                      num_workers=10,
+                                      num_workers=cpu_core_nums,
                                       collate_fn=ranker_db_collator)
     generator_all_dbs_ids, generator_all_dbs_mask, _, _ = get_all_dbs_inputs(generator_db_dataloader)
     retriever_all_dbs_ids, retriever_all_dbs_mask, retriever_all_dbs_token_type, _ = get_all_dbs_inputs(retriever_db_dataloader)
@@ -324,8 +328,8 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                 retriever_model.train()
                 ranker_model.train()
                 if opt.is_main:
-                    if dev_score > best_dev_score:
-                        best_dev_score = dev_score
+                    if test_score > best_dev_score:
+                        best_dev_score = test_score
                         src.util.save(generator_model, generator_optimizer, generator_scheduler, step, best_dev_score,
                                       opt, checkpoint_path, 'generator_best_dev')
                         src.util.save(retriever_model, retriever_optimizer, retriever_scheduler, step, best_dev_score,
@@ -382,7 +386,7 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
                                       sampler=sampler,
                                       batch_size=opt.per_gpu_eval_batch_size,
                                       drop_last=False,
-                                      num_workers=10,
+                                      num_workers=cpu_core_nums,
                                       collate_fn=dial_collator
                                       )
     generator_model.eval()
