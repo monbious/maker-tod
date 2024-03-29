@@ -386,14 +386,14 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
             train_loss = generator_loss
             if ranker_times_loss is not None:
                 train_loss = train_loss + opt.ranker_times_matrix_loss_alpha * ranker_times_loss
-                train_loss = train_loss - opt.ranker_times_matrix_loss_alpha * rest_ranker_times_loss
+                train_loss = train_loss - 0.5 * opt.ranker_times_matrix_loss_alpha * rest_ranker_times_loss
             # if rest_ranker_times_loss is not None:
             #     train_loss = train_loss + opt.ranker_times_matrix_loss_alpha * rest_ranker_times_loss
             # if ranker_scores is not None:
             #     train_loss = train_loss - ranker_model.BinaryCrossEntropy(ranker_scores, rest_ranker_scores)
             if retriever_loss is not None:
                 train_loss = train_loss + opt.generator_distill_retriever_loss_alpha * retriever_loss
-                train_loss = train_loss - opt.generator_distill_retriever_loss_alpha * rest_retriever_loss
+                train_loss = train_loss - 0.5 * opt.generator_distill_retriever_loss_alpha * rest_retriever_loss
 
             train_loss = train_loss / opt.accumulation_steps
             train_loss.backward()
