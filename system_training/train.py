@@ -268,6 +268,23 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     sent_emb=True).pooler_output.view(bsz, opt.top_k_dbs, -1)  # have grad
                 retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_context_embeddings.unsqueeze(1),
                                                           retriever_top_k_dbs_embeddings).squeeze(1)  # (bs, top_k)
+
+                retriever_rest_dbs_ids = torch.gather(retriever_all_dbs_ids.unsqueeze(0).repeat(bsz, 1, 1), 1,
+                                                       retriever_rest_dbs_index.long().repeat(1, 1, retriever_db_len))
+                retriever_rest_dbs_mask = torch.gather(retriever_all_dbs_mask.unsqueeze(0).repeat(bsz, 1, 1), 1,
+                                                        retriever_rest_dbs_index.long().repeat(1, 1, retriever_db_len))
+                retriever_rest_dbs_token_type = torch.gather(
+                    retriever_all_dbs_token_type.unsqueeze(0).repeat(bsz, 1, 1), 1,
+                    retriever_rest_dbs_index.long().repeat(1, 1, retriever_db_len))
+                retriever_rest_dbs_embeddings = retriever_model(
+                    input_ids=retriever_rest_dbs_ids.view(-1, retriever_db_len).long().cuda(),
+                    attention_mask=retriever_rest_dbs_mask.view(-1, retriever_db_len).long().cuda(),
+                    token_type_ids=retriever_rest_dbs_token_type.view(-1, retriever_db_len).long().cuda(),
+                    output_hidden_states=True,
+                    return_dict=True,
+                    sent_emb=True).pooler_output.view(bsz, opt.top_k_dbs, -1)  # have grad
+                retriever_rest_dbs_scores = torch.einsum("bad,bkd->bak", retriever_context_embeddings.unsqueeze(1),
+                                                          retriever_rest_dbs_embeddings).squeeze(1)  # (bs, top_k)
             else:
                 if opt.use_retriever_for_gt is False:
                     retriever_top_k_dbs_scores = None
@@ -291,6 +308,25 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                         sent_emb=True).pooler_output.view(bsz, opt.top_k_dbs, -1)  # have grad
                     retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_context_embeddings.unsqueeze(1),
                                                               retriever_top_k_dbs_embeddings).squeeze(1)  # (bs, top_k)
+
+                    retriever_rest_dbs_ids = torch.gather(retriever_all_dbs_ids.unsqueeze(0).repeat(bsz, 1, 1), 1,
+                                                          retriever_rest_dbs_index.long().repeat(1, 1,
+                                                                                                 retriever_db_len))
+                    retriever_rest_dbs_mask = torch.gather(retriever_all_dbs_mask.unsqueeze(0).repeat(bsz, 1, 1), 1,
+                                                           retriever_rest_dbs_index.long().repeat(1, 1,
+                                                                                                  retriever_db_len))
+                    retriever_rest_dbs_token_type = torch.gather(
+                        retriever_all_dbs_token_type.unsqueeze(0).repeat(bsz, 1, 1), 1,
+                        retriever_rest_dbs_index.long().repeat(1, 1, retriever_db_len))
+                    retriever_rest_dbs_embeddings = retriever_model(
+                        input_ids=retriever_rest_dbs_ids.view(-1, retriever_db_len).long().cuda(),
+                        attention_mask=retriever_rest_dbs_mask.view(-1, retriever_db_len).long().cuda(),
+                        token_type_ids=retriever_rest_dbs_token_type.view(-1, retriever_db_len).long().cuda(),
+                        output_hidden_states=True,
+                        return_dict=True,
+                        sent_emb=True).pooler_output.view(bsz, opt.top_k_dbs, -1)  # have grad
+                    retriever_rest_dbs_scores = torch.einsum("bad,bkd->bak", retriever_context_embeddings.unsqueeze(1),
+                                                             retriever_rest_dbs_embeddings).squeeze(1)  # (bs, top_k)
             if opt.use_ranker is True:  # step operations is inside
                 ranker_outputs = ranker_model(
                     input_ids=ranker_context_top_k_dbs_input_ids.long().cuda(),
@@ -312,7 +348,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     token_type_ids=ranker_context_rest_dbs_token_type.cuda(),
                     times_matrix=times_matrix.cuda() if times_matrix is not None else None,
                     step=step,
-                    retriever_top_k_dbs_scores=retriever_top_k_dbs_scores.detach() if retriever_top_k_dbs_scores is not None else None,
+                    retriever_top_k_dbs_scores=retriever_rest_dbs_scores.detach() if retriever_rest_dbs_scores is not None else None,
                     generator_sep_id=generator_db_collator.sep_id,
                     generator_db_id=generator_db_collator.db_id,
                     generator_input_ids=generator_context_top_k_dbs_input_ids.long().cuda(),
@@ -337,9 +373,11 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                 distill_label = decoder_cross_attention_scores.detach()
                 if opt.generator_distill_retriever_loss_type == "kl":
                     retriever_loss = kldivloss(retriever_top_k_dbs_scores, distill_label)
+                    rest_retriever_loss = kldivloss(retriever_rest_dbs_scores, distill_label)
                 elif opt.generator_distill_retriever_loss_type == "ce":
                     distill_label = F.softmax(distill_label, dim=-1)
                     retriever_loss = SoftCrossEntropy(retriever_top_k_dbs_scores, distill_label)
+                    rest_retriever_loss = SoftCrossEntropy(retriever_rest_dbs_scores, distill_label)
                 else:
                     raise ValueError
             else:
@@ -354,6 +392,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                 train_loss = train_loss - ranker_model.BinaryCrossEntropy(ranker_scores, rest_ranker_scores)
             if retriever_loss is not None:
                 train_loss = train_loss + opt.generator_distill_retriever_loss_alpha * retriever_loss
+                train_loss = train_loss - opt.generator_distill_retriever_loss_alpha * rest_retriever_loss
 
             train_loss = train_loss / opt.accumulation_steps
             train_loss.backward()
