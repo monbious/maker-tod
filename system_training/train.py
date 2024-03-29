@@ -373,11 +373,11 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                 distill_label = decoder_cross_attention_scores.detach()
                 if opt.generator_distill_retriever_loss_type == "kl":
                     retriever_loss = kldivloss(retriever_top_k_dbs_scores, distill_label)
-                    rest_retriever_loss = kldivloss(retriever_rest_dbs_scores, retriever_top_k_dbs_scores)
+                    rest_retriever_loss = kldivloss(retriever_rest_dbs_scores, distill_label)
                 elif opt.generator_distill_retriever_loss_type == "ce":
                     distill_label = F.softmax(distill_label, dim=-1)
                     retriever_loss = SoftCrossEntropy(retriever_top_k_dbs_scores, distill_label)
-                    rest_retriever_loss = SoftCrossEntropy(retriever_rest_dbs_scores, retriever_top_k_dbs_scores)
+                    rest_retriever_loss = SoftCrossEntropy(retriever_rest_dbs_scores, distill_label)
                 else:
                     raise ValueError
             else:
