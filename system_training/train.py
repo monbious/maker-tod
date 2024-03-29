@@ -1,4 +1,4 @@
-import multiprocessing
+import os
 
 import torch
 import transformers
@@ -18,7 +18,7 @@ import src.model
 import src.simcse_model
 import src.ranker_model
 
-cpu_core_nums = multiprocessing.cpu_count
+cpu_core_nums = os.cpu_count()
 
 
 def retriever_embedding_db(model, dataloader):
