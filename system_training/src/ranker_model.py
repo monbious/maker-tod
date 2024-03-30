@@ -98,7 +98,7 @@ class BertForRank(transformers.BertPreTrainedModel):
             ranker_scores = ranker_scores[:, :, self.model_args.ranker_text_maxlength:, :].masked_fill(~ranker_attention_mask, 0.).sum(dim=2) / ranker_attention_mask.sum(dim=2)  # (bs, db_num, hidden_size)
         else:
             raise ValueError
-        print('=====>', ranker_scores.shape)
+        # print('=====>', ranker_scores.shape)
         ranker_scores = self.ranker_head(ranker_scores)  # (bs, db_num, num_attribute)
         if retriever_top_k_dbs_scores is not None and self.model_args.rank_no_retriever_weighted is False:
             top_k_weight = F.softmax(retriever_top_k_dbs_scores, dim=-1).unsqueeze(2)  # (bs, db_num, 1)

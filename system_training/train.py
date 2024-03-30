@@ -269,6 +269,8 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                 retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_context_embeddings.unsqueeze(1),
                                                           retriever_top_k_dbs_embeddings).squeeze(1)  # (bs, top_k)
 
+
+                # rest
                 retriever_rest_dbs_ids = torch.gather(retriever_all_dbs_ids.unsqueeze(0).repeat(bsz, 1, 1), 1,
                                                        retriever_rest_dbs_index.long().repeat(1, 1, retriever_db_len))
                 retriever_rest_dbs_mask = torch.gather(retriever_all_dbs_mask.unsqueeze(0).repeat(bsz, 1, 1), 1,
@@ -309,6 +311,9 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_context_embeddings.unsqueeze(1),
                                                               retriever_top_k_dbs_embeddings).squeeze(1)  # (bs, top_k)
 
+                    print('=====>', retriever_top_k_dbs_embeddings.shape)
+
+                    # rest
                     retriever_rest_dbs_ids = torch.gather(retriever_all_dbs_ids.unsqueeze(0).repeat(bsz, 1, 1), 1,
                                                           retriever_rest_dbs_index.long().repeat(1, 1,
                                                                                                  retriever_db_len))
