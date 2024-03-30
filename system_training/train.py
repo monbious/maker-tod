@@ -267,20 +267,14 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     return_dict=True,
                     sent_emb=True)  # have grad
                 retriever_top_k_dbs_embeddings = retriever_top_k_dbs_outputs.pooler_output
-                retriever_top_k_dbs_output = retriever_top_k_dbs_outputs.last_hidden_state
 
                 retriever_top_k_dbs_embeddings = retriever_top_k_dbs_embeddings.view(bsz, opt.top_k_dbs, -1)
-                retriever_top_k_dbs_output = retriever_top_k_dbs_output.view(bsz, opt.top_k_dbs,
-                                                                             opt.retriever_text_maxlength, -1)
                 retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_context_embeddings.unsqueeze(1),
                                                           retriever_top_k_dbs_embeddings).squeeze(1)  # (bs, top_k)
 
-                retriever_top_k_dbs_output = torch.softmax(retriever_top_k_dbs_embeddings, dim=-1).unsqueeze(
-                    -1).expand_as(retriever_top_k_dbs_output).mul(retriever_top_k_dbs_output).sum(2)
-
                 retriever_top_k_dbs_props = torch.softmax(retriever_top_k_dbs_scores, dim=-1)
                 retriever_top_k_dbs_emb = retriever_top_k_dbs_props.unsqueeze(-1).expand_as(
-                    retriever_top_k_dbs_output).mul(retriever_top_k_dbs_output).sum(1)
+                    retriever_top_k_dbs_embeddings).mul(retriever_top_k_dbs_embeddings).sum(1)
                 ctx_ent_emb = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(),
                                           retriever_top_k_dbs_emb)
 
@@ -324,19 +318,16 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                         return_dict=True,
                         sent_emb=True)  # have grad
                     retriever_top_k_dbs_embeddings = retriever_top_k_dbs_outputs.pooler_output
-                    retriever_top_k_dbs_output = retriever_top_k_dbs_outputs.last_hidden_state
 
                     retriever_top_k_dbs_embeddings = retriever_top_k_dbs_embeddings.view(bsz, opt.top_k_dbs, -1)
-                    retriever_top_k_dbs_output = retriever_top_k_dbs_output.view(bsz, opt.top_k_dbs, opt.retriever_text_maxlength, -1)
                     retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_context_embeddings.unsqueeze(1),
                                                               retriever_top_k_dbs_embeddings).squeeze(1)  # (bs, top_k)
 
-                    retriever_top_k_dbs_output = torch.softmax(retriever_top_k_dbs_embeddings, dim=-1).unsqueeze(-1).expand_as(retriever_top_k_dbs_output).mul(retriever_top_k_dbs_output).sum(2)
-
                     retriever_top_k_dbs_props = torch.softmax(retriever_top_k_dbs_scores, dim=-1)
-                    retriever_top_k_dbs_emb = retriever_top_k_dbs_props.unsqueeze(-1).expand_as(retriever_top_k_dbs_output).mul(retriever_top_k_dbs_output).sum(1)
-                    ctx_ent_emb = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(), retriever_top_k_dbs_emb)
-                    # print('===>', ctx_ent_emb.shape)
+                    retriever_top_k_dbs_emb = retriever_top_k_dbs_props.unsqueeze(-1).expand_as(
+                        retriever_top_k_dbs_embeddings).mul(retriever_top_k_dbs_embeddings).sum(1)
+                    ctx_ent_emb = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(),
+                                              retriever_top_k_dbs_emb)
 
                     # rest
                     retriever_rest_dbs_ids = torch.gather(retriever_all_dbs_ids.unsqueeze(0).repeat(bsz, 1, 1), 1,
@@ -384,7 +375,6 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     generator_db_id=generator_db_collator.db_id,
                     generator_input_ids=generator_context_top_k_dbs_input_ids.long().cuda(),
                     generator_attention_mask=generator_context_top_k_dbs_mask.cuda(),
-                    is_rest=True,
                 )
                 rest_ranker_times_loss, rest_ranker_scores, _ = rest_ranker_outputs
             else:
@@ -418,10 +408,10 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
             if ranker_times_loss is not None:
                 train_loss = train_loss + opt.ranker_times_matrix_loss_alpha * ranker_times_loss
             if ranker_scores is not None:
-                train_loss = train_loss - ranker_model.BinaryCrossEntropy(ranker_scores, rest_ranker_scores)
+                train_loss = train_loss - 0.5 * ranker_model.BinaryCrossEntropy(ranker_scores, rest_ranker_scores)
             if retriever_loss is not None:
                 train_loss = train_loss + opt.generator_distill_retriever_loss_alpha * retriever_loss
-                train_loss = train_loss - opt.generator_distill_retriever_loss_alpha * rest_retriever_loss
+                train_loss = train_loss - 0.5 * rest_retriever_loss
 
             train_loss = train_loss / opt.accumulation_steps
             train_loss.backward()
@@ -673,20 +663,14 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
                     return_dict=True,
                     sent_emb=True)  # have grad
                 retriever_top_k_dbs_embeddings = retriever_top_k_dbs_outputs.pooler_output
-                retriever_top_k_dbs_output = retriever_top_k_dbs_outputs.last_hidden_state
 
                 retriever_top_k_dbs_embeddings = retriever_top_k_dbs_embeddings.view(bsz, opt.top_k_dbs, -1)
-                retriever_top_k_dbs_output = retriever_top_k_dbs_output.view(bsz, opt.top_k_dbs,
-                                                                             opt.retriever_text_maxlength, -1)
                 retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_context_embeddings.unsqueeze(1),
                                                           retriever_top_k_dbs_embeddings).squeeze(1)  # (bs, top_k)
 
-                retriever_top_k_dbs_output = torch.softmax(retriever_top_k_dbs_embeddings, dim=-1).unsqueeze(
-                    -1).expand_as(retriever_top_k_dbs_output).mul(retriever_top_k_dbs_output).sum(2)
-
                 retriever_top_k_dbs_props = torch.softmax(retriever_top_k_dbs_scores, dim=-1)
                 retriever_top_k_dbs_emb = retriever_top_k_dbs_props.unsqueeze(-1).expand_as(
-                    retriever_top_k_dbs_output).mul(retriever_top_k_dbs_output).sum(1)
+                    retriever_top_k_dbs_embeddings).mul(retriever_top_k_dbs_embeddings).sum(1)
                 ctx_ent_emb = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(),
                                           retriever_top_k_dbs_emb)
             else:
@@ -711,20 +695,14 @@ def evaluate(generator_model, retriever_model, ranker_model, eval_dial_dataset, 
                         return_dict=True,
                         sent_emb=True)  # have grad
                     retriever_top_k_dbs_embeddings = retriever_top_k_dbs_outputs.pooler_output
-                    retriever_top_k_dbs_output = retriever_top_k_dbs_outputs.last_hidden_state
 
                     retriever_top_k_dbs_embeddings = retriever_top_k_dbs_embeddings.view(bsz, opt.top_k_dbs, -1)
-                    retriever_top_k_dbs_output = retriever_top_k_dbs_output.view(bsz, opt.top_k_dbs,
-                                                                                 opt.retriever_text_maxlength, -1)
                     retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_context_embeddings.unsqueeze(1),
                                                               retriever_top_k_dbs_embeddings).squeeze(1)  # (bs, top_k)
 
-                    retriever_top_k_dbs_output = torch.softmax(retriever_top_k_dbs_embeddings, dim=-1).unsqueeze(
-                        -1).expand_as(retriever_top_k_dbs_output).mul(retriever_top_k_dbs_output).sum(2)
-
                     retriever_top_k_dbs_props = torch.softmax(retriever_top_k_dbs_scores, dim=-1)
                     retriever_top_k_dbs_emb = retriever_top_k_dbs_props.unsqueeze(-1).expand_as(
-                        retriever_top_k_dbs_output).mul(retriever_top_k_dbs_output).sum(1)
+                        retriever_top_k_dbs_embeddings).mul(retriever_top_k_dbs_embeddings).sum(1)
                     ctx_ent_emb = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(),
                                               retriever_top_k_dbs_emb)
             if opt.use_ranker is True:  # step operations is inside

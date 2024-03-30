@@ -9,22 +9,27 @@ from transformers import BertModel
 class RankerHead(nn.Module):
     """Head for sentence-level classification tasks."""
 
-    def __init__(self, config, output_dim=12):
+    def __init__(self, config, output_dim=12, pooler_dim=128):
         super().__init__()
         self.dense = nn.Linear(config.hidden_size, config.hidden_size)
-        self.fuse_dense = nn.Linear(2*config.hidden_size, config.hidden_size)
+        self.reference = nn.GRU(config.hidden_size, pooler_dim, dropout=config.hidden_dropout_prob, batch_first=True)
+        self.fuse_dense = nn.Linear(pooler_dim, output_dim)
+
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.out_proj = nn.Linear(config.hidden_size, output_dim)
 
     def forward(self, x, ctx_ent_emb, **kwargs):
         x = self.dropout(x)
         if ctx_ent_emb is not None:
-            x = self.fuse_dense(torch.cat([x, ctx_ent_emb.unsqueeze(1).expand_as(x)], dim=-1))
+            x, _ = self.reference(x, ctx_ent_emb.unsqueeze(0))
+            x = torch.tanh(x)
+            x = self.dropout(x)
+            x = self.fuse_dense(x)
         else:
             x = self.dense(x)
-        x = torch.tanh(x)
-        x = self.dropout(x)
-        x = self.out_proj(x)
+            x = torch.tanh(x)
+            x = self.dropout(x)
+            x = self.out_proj(x)
         return x
 
 
@@ -42,7 +47,7 @@ class BertForRank(transformers.BertPreTrainedModel):
             self.attr_num = 21
         else:
             raise NotImplementedError
-        self.ranker_head = RankerHead(config, output_dim=self.attr_num)
+        self.ranker_head = RankerHead(config, output_dim=self.attr_num, pooler_dim=model_args.retriever_text_maxlength)
 
         self.init_weights()
 

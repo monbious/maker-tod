@@ -37,7 +37,7 @@ class ReferenceModel(nn.Module):
 
     def __init__(self, opt):
         super(ReferenceModel, self).__init__()
-        self.reference = nn.GRU(opt.hidden_units, opt.hidden_units, dropout=opt.dropout, batch_first=True)
+        self.reference = nn.GRU(opt.hidden_units, opt.retriever_text_maxlength, dropout=opt.dropout, batch_first=True)
         self.selfatten = SelfAttention(opt.hidden_units, dropout=opt.dropout)
 
     def forward(self, input_emb, input_lengths, ent_mask, ctx_emb):
