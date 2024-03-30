@@ -321,7 +321,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     retriever_top_k_dbs_props = torch.softmax(retriever_top_k_dbs_scores, dim=-1)
                     retriever_top_k_dbs_emb = retriever_top_k_dbs_props.unsqueeze(-1).expand_as(retriever_top_k_dbs_output).mul(retriever_top_k_dbs_output).sum(1)
                     ctx_ent_emb = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(), retriever_top_k_dbs_emb)
-                    print('===>', ctx_ent_emb.shape)
+                    # print('===>', ctx_ent_emb.shape)
 
                     # rest
                     retriever_rest_dbs_ids = torch.gather(retriever_all_dbs_ids.unsqueeze(0).repeat(bsz, 1, 1), 1,

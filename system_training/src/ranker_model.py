@@ -12,12 +12,17 @@ class RankerHead(nn.Module):
     def __init__(self, config, output_dim=12):
         super().__init__()
         self.dense = nn.Linear(config.hidden_size, config.hidden_size)
+        self.fuse_dense = nn.Linear(2*config.hidden_size, config.hidden_size)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.out_proj = nn.Linear(config.hidden_size, output_dim)
 
-    def forward(self, x, **kwargs):
+    def forward(self, x, ctx_ent_emb, **kwargs):
         x = self.dropout(x)
-        x = self.dense(x)
+        if ctx_ent_emb is not None:
+            x = self.fuse_dense(torch.cat([x, ctx_ent_emb.unsqueeze(1).expand_as(x)], dim=-1))
+            print('=======>')
+        else:
+            x = self.dense(x)
         x = torch.tanh(x)
         x = self.dropout(x)
         x = self.out_proj(x)
@@ -61,7 +66,7 @@ class BertForRank(transformers.BertPreTrainedModel):
             generator_db_id=None,
             generator_input_ids=None,
             generator_attention_mask=None,
-            is_rest=False,
+            ctx_ent_emb=None,
             **kwargs
     ):
         if input_ids is not None:
@@ -99,7 +104,7 @@ class BertForRank(transformers.BertPreTrainedModel):
         else:
             raise ValueError
         # print('=====>', ranker_scores.shape)
-        ranker_scores = self.ranker_head(ranker_scores)  # (bs, db_num, num_attribute)
+        ranker_scores = self.ranker_head(ranker_scores, ctx_ent_emb)  # (bs, db_num, num_attribute)
         if retriever_top_k_dbs_scores is not None and self.model_args.rank_no_retriever_weighted is False:
             top_k_weight = F.softmax(retriever_top_k_dbs_scores, dim=-1).unsqueeze(2)  # (bs, db_num, 1)
             ranker_scores = (ranker_scores * top_k_weight).sum(dim=1)  # (bs, num_attribute)
