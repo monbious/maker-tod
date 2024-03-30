@@ -307,11 +307,13 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                         token_type_ids=retriever_top_k_dbs_token_type.view(-1, retriever_db_len).long().cuda(),
                         output_hidden_states=True,
                         return_dict=True,
-                        sent_emb=True).pooler_output.view(bsz, opt.top_k_dbs, -1)  # have grad
+                        sent_emb=True).pooler_output  # have grad
+                    print('=====>', retriever_top_k_dbs_embeddings.shape)
+                    retriever_top_k_dbs_embeddings = retriever_top_k_dbs_embeddings.view(bsz, opt.top_k_dbs, -1)
                     retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_context_embeddings.unsqueeze(1),
                                                               retriever_top_k_dbs_embeddings).squeeze(1)  # (bs, top_k)
 
-                    print('=====>', retriever_top_k_dbs_embeddings.shape)
+
 
                     # rest
                     retriever_rest_dbs_ids = torch.gather(retriever_all_dbs_ids.unsqueeze(0).repeat(bsz, 1, 1), 1,
