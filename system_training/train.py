@@ -301,19 +301,27 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     retriever_top_k_dbs_token_type = torch.gather(
                         retriever_all_dbs_token_type.unsqueeze(0).repeat(bsz, 1, 1), 1,
                         retriever_top_k_dbs_index.long().repeat(1, 1, retriever_db_len))
-                    retriever_top_k_dbs_embeddings = retriever_model(
+                    retriever_top_k_dbs_outputs = retriever_model(
                         input_ids=retriever_top_k_dbs_ids.view(-1, retriever_db_len).long().cuda(),
                         attention_mask=retriever_top_k_dbs_mask.view(-1, retriever_db_len).long().cuda(),
                         token_type_ids=retriever_top_k_dbs_token_type.view(-1, retriever_db_len).long().cuda(),
                         output_hidden_states=True,
                         return_dict=True,
-                        sent_emb=True).pooler_output  # have grad
-                    print('=====>', retriever_top_k_dbs_embeddings.shape)
+                        sent_emb=True)  # have grad
+                    retriever_top_k_dbs_embeddings = retriever_top_k_dbs_outputs.pooler_output
+                    retriever_top_k_dbs_output = retriever_top_k_dbs_outputs.last_hidden_state
+
                     retriever_top_k_dbs_embeddings = retriever_top_k_dbs_embeddings.view(bsz, opt.top_k_dbs, -1)
+                    retriever_top_k_dbs_output = retriever_top_k_dbs_output.view(bsz, opt.top_k_dbs, opt.retriever_text_maxlength, -1)
                     retriever_top_k_dbs_scores = torch.einsum("bad,bkd->bak", retriever_context_embeddings.unsqueeze(1),
                                                               retriever_top_k_dbs_embeddings).squeeze(1)  # (bs, top_k)
 
+                    retriever_top_k_dbs_output = torch.softmax(retriever_top_k_dbs_embeddings, dim=-1).unsqueeze(-1).expand_as(retriever_top_k_dbs_output).mul(retriever_top_k_dbs_output).sum(2)
 
+                    retriever_top_k_dbs_props = torch.softmax(retriever_top_k_dbs_scores, dim=-1)
+                    retriever_top_k_dbs_emb = retriever_top_k_dbs_props.unsqueeze(-1).expand_as(retriever_top_k_dbs_output).mul(retriever_top_k_dbs_output).sum(1)
+                    ctx_ent_emb = refer_model(retriever_context_output, seq_lens, ent_mark.long().cuda(), retriever_top_k_dbs_emb)
+                    print('===>', ctx_ent_emb.shape)
 
                     # rest
                     retriever_rest_dbs_ids = torch.gather(retriever_all_dbs_ids.unsqueeze(0).repeat(bsz, 1, 1), 1,
