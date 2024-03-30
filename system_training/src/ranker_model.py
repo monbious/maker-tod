@@ -20,7 +20,6 @@ class RankerHead(nn.Module):
         x = self.dropout(x)
         if ctx_ent_emb is not None:
             x = self.fuse_dense(torch.cat([x, ctx_ent_emb.unsqueeze(1).expand_as(x)], dim=-1))
-            print('=======>')
         else:
             x = self.dense(x)
         x = torch.tanh(x)
