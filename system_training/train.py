@@ -354,6 +354,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     generator_db_id=generator_db_collator.db_id,
                     generator_input_ids=generator_context_top_k_dbs_input_ids.long().cuda(),
                     generator_attention_mask=generator_context_top_k_dbs_mask.cuda(),
+                    ctx_ent_emb=ctx_ent_emb if ctx_ent_emb is not None else None,
                 )
                 ranker_times_loss, ranker_scores, generator_context_top_k_dbs_top_r_attr_mask = ranker_outputs
 
