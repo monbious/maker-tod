@@ -380,6 +380,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
             else:
                 ranker_times_loss, generator_context_top_k_dbs_top_r_attr_mask = None, generator_context_top_k_dbs_mask
                 rest_ranker_times_loss = None
+                ranker_scores = None
 
             generator_outputs = generator_model(
                 input_ids=generator_context_top_k_dbs_input_ids.long().cuda(),
