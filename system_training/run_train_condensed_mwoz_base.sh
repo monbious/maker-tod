@@ -17,7 +17,7 @@ python train.py \
     --dbs others/data/mwoz_gptke/data_used/${DATA}/all_db.json \
     --retriever_lr 5e-5 \
     --ranker_lr 5e-5 \
-    --use_ranker False \
+#    --use_ranker False \
     --rank_attribute_start_step 0 \
     --rank_attribute_pooling avg_wo_context \
     --ranker_attribute_ways threshold \
