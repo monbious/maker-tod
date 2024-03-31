@@ -9,27 +9,19 @@ from transformers import BertModel
 class RankerHead(nn.Module):
     """Head for sentence-level classification tasks."""
 
-    def __init__(self, config, output_dim=12, pooler_dim=128):
+    def __init__(self, config, output_dim=12):
         super().__init__()
         self.dense = nn.Linear(config.hidden_size, config.hidden_size)
-        self.reference = nn.GRU(config.hidden_size, pooler_dim, dropout=config.hidden_dropout_prob, batch_first=True)
-        self.fuse_dense = nn.Linear(pooler_dim, output_dim)
 
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.out_proj = nn.Linear(config.hidden_size, output_dim)
 
-    def forward(self, x, ctx_ent_emb, **kwargs):
+    def forward(self, x, **kwargs):
         x = self.dropout(x)
-        if ctx_ent_emb is not None:
-            x, _ = self.reference(x, ctx_ent_emb.unsqueeze(0))
-            x = torch.tanh(x)
-            x = self.dropout(x)
-            x = self.fuse_dense(x)
-        else:
-            x = self.dense(x)
-            x = torch.tanh(x)
-            x = self.dropout(x)
-            x = self.out_proj(x)
+        x = self.dense(x)
+        x = torch.tanh(x)
+        x = self.dropout(x)
+        x = self.out_proj(x)
         return x
 
 
@@ -47,7 +39,7 @@ class BertForRank(transformers.BertPreTrainedModel):
             self.attr_num = 21
         else:
             raise NotImplementedError
-        self.ranker_head = RankerHead(config, output_dim=self.attr_num, pooler_dim=model_args.retriever_text_maxlength)
+        self.ranker_head = RankerHead(config, output_dim=self.attr_num)
 
         self.init_weights()
 
@@ -70,7 +62,6 @@ class BertForRank(transformers.BertPreTrainedModel):
             generator_db_id=None,
             generator_input_ids=None,
             generator_attention_mask=None,
-            ctx_ent_emb=None,
             **kwargs
     ):
         if input_ids is not None:
@@ -108,7 +99,7 @@ class BertForRank(transformers.BertPreTrainedModel):
         else:
             raise ValueError
         # print('=====>', ranker_scores.shape)
-        ranker_scores = self.ranker_head(ranker_scores, ctx_ent_emb)  # (bs, db_num, num_attribute)
+        ranker_scores = self.ranker_head(ranker_scores)  # (bs, db_num, num_attribute)
         if retriever_top_k_dbs_scores is not None and self.model_args.rank_no_retriever_weighted is False:
             top_k_weight = F.softmax(retriever_top_k_dbs_scores, dim=-1).unsqueeze(2)  # (bs, db_num, 1)
             ranker_scores = (ranker_scores * top_k_weight).sum(dim=1)  # (bs, num_attribute)
