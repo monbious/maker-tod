@@ -26,7 +26,7 @@ python train.py \
     --ranker_times_matrix_loss_type bce \
     --ranker_times_matrix_query cr \
     --generator_distill_retriever True \
-    --generator_distill_retriever_start_step 60000 \
+    --generator_distill_retriever_start_step 40000 \
     --use_delex True \
     --use_dk True \
     --use_checkpoint \
@@ -34,8 +34,8 @@ python train.py \
     --retriever_total_steps ${ES} \
     --ranker_total_steps ${ES} \
     --end_eval_step ${ES} \
-    --per_gpu_batch_size 1 \
-    --per_gpu_eval_batch_size 1 \
+    --per_gpu_batch_size 2 \
+    --per_gpu_eval_batch_size 4 \
     --accumulation_steps ${AS} \
     --retriever_accumulation_steps ${AS} \
     --ranker_accumulation_steps ${AS} \
