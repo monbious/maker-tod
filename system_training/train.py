@@ -169,7 +169,7 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                                                         retriever_all_dbs_embeddings)  # (bs, all_db_num)
                 retriever_top_k_dbs_index = retriever_all_dbs_scores.sort(-1, True)[1][:, :opt.top_k_dbs].unsqueeze(2)  # (bs, top_k, 1)
 
-                retriever_rest_dbs_index = torch.cat((retriever_top_k_dbs_index[-1].unsqueeze(0), retriever_top_k_dbs_index[:-1]), dim=0)
+                retriever_rest_dbs_index = retriever_all_dbs_scores.sort(-1, True)[1][:, -opt.top_k_dbs:].unsqueeze(2)  # (bs, top_k, 1)
             else:
                 if opt.use_retriever_for_gt is False:
                     retriever_top_k_dbs_index = gt_db_idx[:, :opt.top_k_dbs].unsqueeze(2)  # (bs, top_k, 1)
@@ -201,9 +201,9 @@ def train(generator_model, retriever_model, ranker_model, generator_tokenizer, r
                     retriever_gt_dbs_scores = torch.gather(retriever_all_dbs_scores, 1,
                                                            gt_db_idx.long())  # (bs, gt_db_num)
                     retriever_top_k_dbs_index = retriever_gt_dbs_scores.sort(-1, True)[1][:, :opt.top_k_dbs]  # (bs, top_k)
-                    retriever_rest_dbs_index = torch.cat((retriever_top_k_dbs_index[-1].unsqueeze(0), retriever_top_k_dbs_index[:-1]), dim=0)
+                    retriever_rest_dbs_index = retriever_all_dbs_scores.sort(-1, True)[1][:, -opt.top_k_dbs:].unsqueeze(2)  # (bs, top_k, 1)
+
                     retriever_top_k_dbs_index = torch.gather(gt_db_idx, 1, retriever_top_k_dbs_index.long()).unsqueeze(2)  # (bs, top_k, 1)
-                    retriever_rest_dbs_index = torch.gather(gt_db_idx, 1, retriever_rest_dbs_index.long()).unsqueeze(2)  # (bs, top_k, 1)
 
 
             # get top-k db generator inputs and concat with context inputs and forward into generator model
