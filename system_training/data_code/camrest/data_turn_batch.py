@@ -103,11 +103,16 @@ class DialDataset(torch.utils.data.Dataset):
         return_dict = {'index': index, 'context': context, 'resp_ori': resp_ori}
 
         # 添加上下文的实体标记
-        dial_kbs = example["kb"]
-        dial_kb_set = set(list(reduce(lambda a, b: a + b, [list(kb_dict.values()) for kb_dict in dial_kbs])) + example[
-            "gold_entities"])
-        context_splits = context.split(' ')
-        ent_mark = [2 if word not in dial_kb_set else 1 for word in context_splits]
+        dial_kbs = example.get("kb", [])
+        dial_kb_set = set(
+            list(reduce(lambda a, b: a + b, [list(kb_dict.values()) for kb_dict in dial_kbs], [])) + example.get(
+                'gold_entities', []))
+        context_splits = context.split()
+        dial_kb_list = list(reduce(lambda a, b: a + b, [item.split('_') for item in dial_kb_set]))
+        # dial_kb_list = dial_kb_list + ['<user>', '<sys>', '<sys-api>', '<api>']
+        ent_mark = [0 if word not in dial_kb_list else 1 for word in context_splits]
+        # print('===>', context_splits)
+        # print('===>', ent_mark)
         return_dict['ent_mark'] = ent_mark
         return_dict['seq_len'] = len(context_splits)
 
@@ -225,7 +230,7 @@ class DialCollator(object):
             times_matrix = None
 
         ent_mark = torch.tensor([ex["ent_mark"] + [0] * (self.retriever_text_maxlength - len(ex["ent_mark"])) if len(
-            ex["ent_mark"]) < self.retriever_text_maxlength else ex["ent_mark"][:self.retriever_text_maxlength] for ex
+            ex["ent_mark"]) < self.retriever_text_maxlength else ex["ent_mark"][-self.retriever_text_maxlength:] for ex
                                  in batch])
         seq_lens = [ex["seq_len"] if ex["seq_len"] < self.retriever_text_maxlength else self.retriever_text_maxlength
                     for ex in batch]
