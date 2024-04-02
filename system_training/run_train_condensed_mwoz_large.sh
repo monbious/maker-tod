@@ -16,7 +16,7 @@ python train.py \
     --eval_data others/data/mwoz_gptke/data_used/${DATA}/val.json \
     --test_data others/data/mwoz_gptke/data_used/${DATA}/test.json \
     --dbs others/data/mwoz_gptke/data_used/${DATA}/all_db.json \
-    --use_ranker True \
+#    --use_ranker True \
     --rank_attribute_start_step 0 \
     --rank_attribute_pooling avg_wo_context \
     --ranker_attribute_ways threshold \
@@ -26,7 +26,7 @@ python train.py \
     --ranker_times_matrix_loss_type bce \
     --ranker_times_matrix_query cr \
     --generator_distill_retriever True \
-    --generator_distill_retriever_start_step 40000 \
+    --generator_distill_retriever_start_step 60000 \
     --use_delex True \
     --use_dk True \
     --use_checkpoint \
@@ -34,8 +34,8 @@ python train.py \
     --retriever_total_steps ${ES} \
     --ranker_total_steps ${ES} \
     --end_eval_step ${ES} \
-    --per_gpu_batch_size 2 \
-    --per_gpu_eval_batch_size 4 \
+    --per_gpu_batch_size 1 \
+    --per_gpu_eval_batch_size 2 \
     --accumulation_steps ${AS} \
     --retriever_accumulation_steps ${AS} \
     --ranker_accumulation_steps ${AS} \
