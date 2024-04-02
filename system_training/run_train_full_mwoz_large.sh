@@ -16,6 +16,8 @@ python train.py \
     --eval_data others/data/mwoz_gptke/data_used/${DATA}/val.json \
     --test_data others/data/mwoz_gptke/data_used/${DATA}/test.json \
     --dbs others/data/mwoz_gptke/data_used/${DATA}/all_db.json \
+    --retriever_lr 5e-5 \
+    --ranker_lr 5e-5 \
     --use_ranker True \
     --rank_attribute_start_step 0 \
     --rank_attribute_pooling avg_wo_context \
