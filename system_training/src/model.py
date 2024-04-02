@@ -42,9 +42,10 @@ class ReferenceModel(nn.Module):
 
     def forward(self, input_emb, input_lengths, ent_mask, ctx_ent_emb):
         refer_outputs, _ = self.reference(input_emb, ctx_ent_emb.unsqueeze(0))
-        refer_outputs_hidden = self.selfatten(refer_outputs, input_lengths, ent_mask)
+        refer_ent_hidden = self.selfatten(refer_outputs, input_lengths, ent_mask)
+        refer_ent_output = self.selfatten(refer_outputs, input_lengths)
 
-        return refer_outputs_hidden + ctx_ent_emb
+        return refer_ent_hidden+ctx_ent_emb, refer_ent_hidden+refer_ent_output
 
 
 class FiDT5(transformers.T5ForConditionalGeneration):
