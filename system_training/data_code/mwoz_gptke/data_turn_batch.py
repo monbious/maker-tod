@@ -104,8 +104,8 @@ class DialDataset(torch.utils.data.Dataset):
         return_dict = {'index': index, 'context': context, 'resp_ori': resp_ori}
 
         # 添加上下文的实体标记
-        dial_kbs = example.get("kb", [{'':''}])
-        dial_kb_set = set(list(reduce(lambda a, b: a + b, [list(kb_dict.values()) for kb_dict in dial_kbs])) + example["gold_entities"])
+        dial_kbs = example.get("kb", [])
+        dial_kb_set = set(list(reduce(lambda a, b: a + b, [list(kb_dict.values()) for kb_dict in dial_kbs], [])) + example.get('gold_entities', []))
         context_splits = context.split()
         dial_kb_list = list(reduce(lambda a, b: a + b, [item.split('_') for item in dial_kb_set]))
         # dial_kb_list = dial_kb_list + ['<user>', '<sys>', '<sys-api>', '<api>']
