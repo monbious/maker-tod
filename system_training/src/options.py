@@ -149,6 +149,8 @@ class Options():
                                  help='evaluate start step during training')
         self.parser.add_argument('--end_eval_step', type=int, default=32000,
                                  help='evaluate end step during training')
+        self.parser.add_argument('--neg_ent_slide_size', type=int, default=2,
+                                 help='negative ent slide window size')
         self.parser.add_argument('--metric_record_file', type=str, default="metric_record.csv",
                                  help="file to write all metric")
         self.parser.add_argument('--dataset_name', type=str, default="mwoz_gptke", help="dataset name")
