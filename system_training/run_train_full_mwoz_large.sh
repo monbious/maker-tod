@@ -18,7 +18,6 @@ python train.py \
     --dbs others/data/mwoz_gptke/data_used/${DATA}/all_db.json \
     --retriever_lr 5e-5 \
     --ranker_lr 5e-5 \
-    --use_ranker True \
     --rank_attribute_start_step 0 \
     --rank_attribute_pooling avg_wo_context \
     --ranker_attribute_ways threshold \
@@ -37,7 +36,7 @@ python train.py \
     --ranker_total_steps ${ES} \
     --end_eval_step ${ES} \
     --per_gpu_batch_size 1 \
-    --per_gpu_eval_batch_size 1 \
+    --per_gpu_eval_batch_size 2 \
     --accumulation_steps ${AS} \
     --retriever_accumulation_steps ${AS} \
     --ranker_accumulation_steps ${AS} \

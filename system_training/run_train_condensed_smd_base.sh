@@ -15,10 +15,14 @@ python train.py \
     --eval_data others/data/smd/data_used/${DATA}/val.json \
     --test_data others/data/smd/data_used/${DATA}/test.json \
     --dbs others/data/smd/data_used/${DATA}/all_db.json \
+    --retriever_lr 5e-5 \
+    --ranker_lr 5e-5 \
+    --per_gpu_eval_batch_size 8 \
+    --per_gpu_batch_size 2 \
     --generator_db_maxlength 200 \
     --ranker_db_maxlength 200 \
     --answer_maxlength 128 \
-    --top_k_dbs 8 \
+    --top_k_dbs 6 \
     --use_dk True \
     --use_checkpoint \
     --total_steps ${ES} \
@@ -26,4 +30,5 @@ python train.py \
     --ranker_total_steps ${ES} \
     --end_eval_step ${ES} \
     --use_gt_dbs True \
+    --use_retriever_for_gt True \
     "$@"

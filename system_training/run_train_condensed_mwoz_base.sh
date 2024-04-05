@@ -17,7 +17,6 @@ python train.py \
     --dbs others/data/mwoz_gptke/data_used/${DATA}/all_db.json \
     --retriever_lr 5e-5 \
     --ranker_lr 5e-5 \
-#    --use_ranker False \
     --rank_attribute_start_step 0 \
     --rank_attribute_pooling avg_wo_context \
     --ranker_attribute_ways threshold \
@@ -27,7 +26,7 @@ python train.py \
     --ranker_times_matrix_loss_type bce \
     --ranker_times_matrix_query cr \
     --generator_distill_retriever True \
-    --generator_distill_retriever_start_step 20000 \
+    --generator_distill_retriever_start_step 30000 \
     --use_delex True \
     --use_dk True \
     --dk_mask True \

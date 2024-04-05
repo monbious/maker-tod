@@ -15,7 +15,6 @@ python train.py \
     --eval_data others/data/camrest/data_used/${DATA}/val.json \
     --test_data others/data/camrest/data_used/${DATA}/test.json \
     --dbs others/data/camrest/data_used/${DATA}/all_db.json \
-    --use_ranker True \
     --rank_attribute_start_step 0 \
     --rank_attribute_pooling avg \
     --ranker_attribute_ways threshold \
@@ -26,6 +25,8 @@ python train.py \
     --ranker_times_matrix_query cr \
     --generator_distill_retriever True \
     --generator_distill_retriever_start_step 30000 \
+    --retriever_lr 5e-5 \
+    --ranker_lr 5e-5 \
     --use_delex True \
     --use_dk True \
     --dk_mask True \
