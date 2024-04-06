@@ -15,8 +15,6 @@ python train.py \
     --eval_data others/data/smd/data_used/${DATA}/val.json \
     --test_data others/data/smd/data_used/${DATA}/test.json \
     --dbs others/data/smd/data_used/${DATA}/all_db.json \
-    --retriever_lr 5e-5 \
-    --ranker_lr 5e-5 \
     --per_gpu_eval_batch_size 2 \
     --per_gpu_batch_size 1 \
     --generator_db_maxlength 200 \
@@ -31,4 +29,5 @@ python train.py \
     --end_eval_step ${ES} \
     --use_gt_dbs True \
     --use_retriever_for_gt True \
+    --neg_ent_slide_size 4 \
     "$@"

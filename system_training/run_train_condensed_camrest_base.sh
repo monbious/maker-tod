@@ -19,8 +19,8 @@ python train.py \
     --ranker_lr 5e-5 \
     --generator_distill_retriever True \
     --generator_distill_retriever_start_step 36000 \
-    --per_gpu_eval_batch_size 4 \
-    --per_gpu_batch_size 2 \
+    --per_gpu_eval_batch_size 8 \
+    --per_gpu_batch_size 4 \
     --use_delex True \
     --use_dk True \
     --use_checkpoint \
