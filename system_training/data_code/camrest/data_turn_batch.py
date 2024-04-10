@@ -297,7 +297,7 @@ class DBCollator(object):
                                               maxlen=self.maxlength, truncated='max_len',
                                               pad_method='post', trunc_method='pre', dtype='int32',
                                               value=self.pad_id)).bool()
-        if "db_mask" in batch[0] and self.type is not None:  # dk_mask only for generator
+        if "db_mask" in batch[0] and self.type == 'generator':  # dk_mask only for generator
             attr_mask = [x["db_mask"] for x in batch]
             attr_mask = torch.tensor(attr_mask).bool()
             sep_index = text_ids.eq(self.sep_id).nonzero()

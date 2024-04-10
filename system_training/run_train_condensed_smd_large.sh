@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export CUDA_VISIBLE_DEVICES=0
-ES=48000
+ES=60000
 DATA=RRG_qtod_data0_times_gtdb_gesa_times-cr
 RMN=others/models/RRG/retriever_camrest_cdnet_data0_times_gtdb_gesa_times-cr_retrieve1_seed-111_ep-15_lr-5e-5_wd-0.01_maxlen-128_bs-108_ngpu-_pln-128_tmp-0.05_hnw-0
 python train.py \
@@ -29,5 +29,5 @@ python train.py \
     --end_eval_step ${ES} \
     --use_gt_dbs True \
     --use_retriever_for_gt True \
-    --neg_ent_slide_size 4 \
+    --neg_ent_slide_size 2 \
     "$@"
