@@ -230,7 +230,7 @@ class DialCollator(object):
             times_matrix = None
 
         ent_mark = torch.tensor([ex["ent_mark"] + [0] * (self.retriever_text_maxlength - len(ex["ent_mark"])) if len(
-            ex["ent_mark"]) < self.retriever_text_maxlength else ex["ent_mark"][:self.retriever_text_maxlength] for ex
+            ex["ent_mark"]) < self.retriever_text_maxlength else ex["ent_mark"][-self.retriever_text_maxlength:] for ex
                                  in batch])
         seq_lens = [ex["seq_len"] if ex["seq_len"] < self.retriever_text_maxlength else self.retriever_text_maxlength
                     for ex in batch]

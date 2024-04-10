@@ -45,7 +45,7 @@ class ReferenceModel(nn.Module):
         refer_ent_hidden = self.selfatten(refer_outputs, input_lengths, ent_mask)
         refer_ent_output = self.selfatten(refer_outputs, input_lengths)
 
-        return refer_ent_hidden+ctx_ent_emb, refer_ent_hidden+refer_ent_output
+        return refer_ent_hidden+ctx_ent_emb, ctx_ent_emb+refer_ent_output
 
 
 class FiDT5(transformers.T5ForConditionalGeneration):
