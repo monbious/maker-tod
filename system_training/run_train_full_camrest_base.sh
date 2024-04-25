@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export CUDA_VISIBLE_DEVICES=0
-ES=48000
+ES=60000
 DATA=RRG_cdnet_data0_times_gtdb_gesa_times-cr
 RMN=others/models/RRG/retriever_camrest_cdnet_data0_times_gtdb_gesa_times-cr_retrieve1_seed-111_ep-15_lr-5e-5_wd-0.01_maxlen-128_bs-108_ngpu-_pln-128_tmp-0.05_hnw-0
 python train.py \
@@ -24,9 +24,9 @@ python train.py \
     --ranker_times_matrix_loss_type bce \
     --ranker_times_matrix_query cr \
     --generator_distill_retriever True \
-    --generator_distill_retriever_start_step 30000 \
-    --retriever_lr 5e-5 \
-    --ranker_lr 5e-5 \
+    --generator_distill_retriever_start_step 48000 \
+    --retriever_lr 1e-4 \
+    --ranker_lr 1e-4 \
     --use_delex True \
     --use_dk True \
     --dk_mask True \
@@ -35,4 +35,5 @@ python train.py \
     --retriever_total_steps ${ES} \
     --ranker_total_steps ${ES} \
     --end_eval_step ${ES} \
+    --neg_ent_slide_size 3 \
     "$@"

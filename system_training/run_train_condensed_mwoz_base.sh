@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export CUDA_VISIBLE_DEVICES=0
-ES=48000
+ES=60000
 DATA=RRG_data1_times_gtdb_gesa_times-cr-dyn
 RMN=others/models/RRG/retriever_train_new_trunc_data_used_new_v0_seed-111_bert-base-uncased_ep-10_lr-5e-5_wd-0.01_maxlen-128_bs-32_ngpu-4_pln-128_tmp-0.05_hnw-0
 python train.py \
@@ -26,7 +26,7 @@ python train.py \
     --ranker_times_matrix_loss_type bce \
     --ranker_times_matrix_query cr \
     --generator_distill_retriever True \
-    --generator_distill_retriever_start_step 30000 \
+    --generator_distill_retriever_start_step 40000 \
     --use_delex True \
     --use_dk True \
     --dk_mask True \

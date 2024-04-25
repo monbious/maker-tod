@@ -25,9 +25,9 @@ python train.py \
     --ranker_times_matrix_loss_type bce \
     --ranker_times_matrix_query cr \
     --generator_distill_retriever True \
-    --generator_distill_retriever_start_step 60000 \
-    --retriever_lr 5e-5 \
-    --ranker_lr 5e-5 \
+    --generator_distill_retriever_start_step 78000 \
+    --retriever_lr 1e-4 \
+    --ranker_lr 1e-4 \
     --use_delex True \
     --use_dk True \
     --use_checkpoint \
@@ -43,4 +43,5 @@ python train.py \
     --db_emb_update_steps 200 \
     --eval_freq 4000 \
     --save_freq 80000 \
+    --neg_ent_slide_size 3 \
     "$@"

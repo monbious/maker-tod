@@ -15,8 +15,8 @@ python train.py \
     --eval_data others/data/mwoz_gptke/data_used/${DATA}/val.json \
     --test_data others/data/mwoz_gptke/data_used/${DATA}/test.json \
     --dbs others/data/mwoz_gptke/data_used/${DATA}/all_db.json \
-    --retriever_lr 5e-5 \
-    --ranker_lr 5e-5 \
+    --retriever_lr 1e-4 \
+    --ranker_lr 1e-4 \
     --rank_attribute_start_step 0 \
     --rank_attribute_pooling avg_wo_context \
     --ranker_attribute_ways threshold \
@@ -34,5 +34,5 @@ python train.py \
     --retriever_total_steps ${ES} \
     --ranker_total_steps ${ES} \
     --end_eval_step ${ES} \
-    --neg_ent_slide_size 6 \
+    --neg_ent_slide_size 3 \
     "$@"

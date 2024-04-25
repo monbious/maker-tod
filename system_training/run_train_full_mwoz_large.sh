@@ -21,7 +21,7 @@ python train.py \
     --rank_attribute_start_step 0 \
     --rank_attribute_pooling avg_wo_context \
     --ranker_attribute_ways threshold \
-    --threshold_attr 0.2 \
+    --threshold_attr 0.1 \
     --ranker_times_matrix True \
     --ranker_times_matrix_start_step 0 \
     --ranker_times_matrix_loss_type bce \
@@ -43,4 +43,5 @@ python train.py \
     --db_emb_update_steps 200 \
     --eval_freq 4000 \
     --save_freq 80000 \
+    --neg_ent_slide_size 3 \
     "$@"
